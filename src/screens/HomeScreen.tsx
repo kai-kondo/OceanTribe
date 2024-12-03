@@ -15,6 +15,7 @@ type RootStackParamList = {
   CreateEvent: undefined;
   Forum: undefined;
   NewsFeed: undefined;
+  Event: undefined;
 };
 
 type Props = {
@@ -119,7 +120,11 @@ const HomeScreen = ({ navigation }: Props) => {
         <TouchableOpacity style={styles.navButton}>
           <Text style={styles.navButtonText}>ホーム</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton}>
+        {/* イベントボタン */}
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigation.navigate("Event")} // クリックでEventScreenに遷移
+        >
           <Text style={styles.navButtonText}>イベント</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navButton}>
