@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { useNavigation } from '@react-navigation/native';
-import NavBar from "../components/NavBar";
+
 
 
 const { width } = Dimensions.get("window");
@@ -169,9 +169,6 @@ const HomeScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.timeline}
       />
-
-      {/* ナビゲ���ションバー */}
-      <NavBar />
     </View>
   );
 };

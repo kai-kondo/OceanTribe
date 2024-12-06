@@ -9,7 +9,7 @@ import {
   TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import NavBar from "../components/NavBar";
+
 
 const eventsData = [
   {
@@ -117,8 +117,6 @@ const EventScreen = ({ navigation }: any) => {
         />
       </View>
 
-      {/* 最下部のNavbar */}
-      <NavBar />
     </View>
   );
 };

@@ -7,14 +7,18 @@ import {
   StyleSheet,
   ImageBackground,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { login } from "../services/firebase"; // firebaseConfigから正しいパスに修正
 
-type RootStackParamList = {
-  Home: undefined;
+
+export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
+  Main: {
+    screen: "Home" | "Event" | "News" | "Notification" | "Messages";
+  };
 };
 
 type Props = {
@@ -29,7 +33,7 @@ const LoginScreen = ({ navigation }: Props) => {
     login(email, password)
       .then(() => {
         alert("ログイン成功");
-        navigation.navigate("Home");
+        navigation.navigate("Main", { screen: "Home" });
       })
       .catch((error:any) => {
         alert(`ログインに失敗しました: ${error.message}`);
@@ -37,7 +41,7 @@ const LoginScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ImageBackground
         source={require("../assets/images/login.jpg")}
         style={styles.backgroundImage}
@@ -82,7 +86,7 @@ const LoginScreen = ({ navigation }: Props) => {
           </View>
         </View>
       </ImageBackground>
-    </View>
+    </SafeAreaView>
   );
 };
 
