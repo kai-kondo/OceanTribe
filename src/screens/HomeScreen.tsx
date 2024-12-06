@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,28 @@ import {
   Dimensions,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
+import { useNavigation } from '@react-navigation/native';
+import NavBar from "../components/NavBar";
+
 
 const { width } = Dimensions.get("window");
 
+interface NavItem {
+  name: string;
+  icon: any; // または正確な型 NodeRequire
+}
+
 const HomeScreen = () => {
+  const navigation = useNavigation<any>();
+  const [currentScreen, setCurrentScreen] = useState("Home");
+
+  const navItems: NavItem[] = [
+    { name: "ホーム", icon: require("../assets/icons/home.png") },
+    { name: "イベント", icon: require("../assets/icons/event.png") },
+    { name: "ニュース", icon: require("../assets/icons/news.png") },
+    { name: "通知", icon: require("../assets/icons/notification.png") },
+    { name: "メッセージ", icon: require("../assets/icons/chat2.png") },
+  ];
   const postsData = [
     {
       id: "1",
@@ -37,7 +55,7 @@ const HomeScreen = () => {
     {
       id: "3",
       user: "Hanako",
-      content: "新しいボードを買ったので紹介します！",
+      content: "新しいボードを買ったので紹介します",
       avatarUrl: "https://via.placeholder.com/50",
       media: "https://www.w3schools.com/html/mov_bbb.mp4", // 動画の例
       time: "3時間前",
@@ -57,7 +75,13 @@ const HomeScreen = () => {
               {item.user}{" "}
               <Text style={styles.boardType}>({item.boardType})</Text>
             </Text>
-            <Text style={styles.homePoint}>🏄‍♂️ {item.homePoint}</Text>
+            <View style={styles.homePointContainer}>
+              <Image
+                source={require("../assets/icons/surfing.png")} // アイン画像のパス
+                style={styles.homePointIcon}
+              />
+              <Text style={styles.homePointText}>{item.homePoint}</Text>
+            </View>
           </View>
         </View>
         <Text style={styles.postTime}>{item.time}</Text>{" "}
@@ -67,10 +91,10 @@ const HomeScreen = () => {
       {/* 投稿内容 */}
       <Text style={styles.postContent}>{item.content}</Text>
 
-      {/* メディア (画像または動画) */}
+      {/*メディア (画像または動画) */}
       {item.media && (
         <View style={styles.mediaContainer}>
-          {item.media.endsWith(".mp4") || item.media.endsWith(".webm") ? (
+          {item.media.endsWith(".mp4") ? (
             <Video
               source={{ uri: item.media }}
               style={styles.media}
@@ -86,12 +110,24 @@ const HomeScreen = () => {
       {/* アクションバー */}
       <View style={styles.actionBar}>
         <TouchableOpacity style={styles.actionButton}>
+          <Image
+            source={require("../assets/icons/like.png")}
+            style={styles.actionIcon}
+          />
           <Text style={styles.actionButtonText}>いいね</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
+          <Image
+            source={require("../assets/icons/comment.png")}
+            style={styles.actionIcon}
+          />
           <Text style={styles.actionButtonText}>コメント</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
+          <Image
+            source={require("../assets/icons/share.png")}
+            style={styles.actionIcon}
+          />
           <Text style={styles.actionButtonText}>共有</Text>
         </TouchableOpacity>
       </View>
@@ -112,13 +148,13 @@ const HomeScreen = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity>
             <Image
-              source={{ uri: "https://via.placeholder.com/30" }} // 検索アイコンのURL
+              source={require("../assets/icons/sarch.png")} // 検索アイコンURL
               style={styles.searchIcon}
             />
           </TouchableOpacity>
           <TouchableOpacity>
             <Image
-              source={{ uri: "https://via.placeholder.com/40" }} // アバターアイコンのURL
+              source={require("../assets/icons/GX011341_FrameGrab_04.jpg")} // アバターイコンのURL
               style={styles.avatar}
             />
           </TouchableOpacity>
@@ -133,6 +169,9 @@ const HomeScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.timeline}
       />
+
+      {/* ナビゲ���ションバー */}
+      <NavBar />
     </View>
   );
 };
@@ -140,7 +179,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F4F4F4", // 明るいグレー背景
   },
   header: {
     flexDirection: "row",
@@ -148,53 +187,56 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: "#F2CB57",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    elevation: 4, // Android向け影
-    shadowColor: "#000", // iOS向け影
-    shadowOffset: { width: 0, height: 2 }, // iOS影の方向
-    shadowOpacity: 0.1, // iOS影の透明度
-    shadowRadius: 4, // iOS影のぼかし
+    backgroundColor: "#3AAAD2",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8, // Android用の影強調
+    borderBottomWidth: 0, // 角の丸みを無効化するために追加
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-start",
   },
   headerIcon: {
     width: 40,
     height: 40,
     resizeMode: "contain",
-    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#206E8C",
+    color: "#FFFFFF",
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-end",
   },
   searchIcon: {
-    width: 30,
-    height: 30,
+    width: 20,
+    height: 20,
     marginRight: 15,
   },
   timeline: {
     padding: 10,
   },
   postCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
     padding: 15,
-    marginBottom: 15,
+    marginBottom: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+    width: width,
+    alignSelf: "center",
+    borderRadius: 10, // 角丸追加
   },
+
   postHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -210,46 +252,73 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#2c3e50",
+    color: "#2C3E50",
   },
   boardType: {
     fontSize: 14,
-    color: "#7f8c8d", // 薄いグレーで表示
+    color: "#7F8C8D",
   },
   postTime: {
     fontSize: 12,
-    color: "#95a5a6",
+    color: "#95A5A6",
   },
   postContent: {
     fontSize: 14,
-    color: "#2c3e50",
+    color: "#2C3E50",
     marginBottom: 10,
   },
-
-  homePoint: {
+  homePointContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  homePointIcon: {
+    width: 16,
+    height: 16,
+    resizeMode: "contain",
+  },
+  homePointText: {
     fontSize: 12,
-    color: "#3498db", // 青系の文字色
-    marginTop: 2, // 少し余白
+    color: "#3AAAD2",
+    marginLeft: 5,
   },
   mediaContainer: {
     marginBottom: 10,
   },
   media: {
-    width: width - 40, // 横幅に合わせる
-    height: (width - 40) * 0.56, // 16:9比率
+    width: width - 40,
+    height: (width - 40) * 0.56,
     borderRadius: 10,
   },
   actionBar: {
     flexDirection: "row",
     justifyContent: "space-around",
+    alignItems: "center",
+    marginVertical: 2,
   },
   actionButton: {
     paddingVertical: 5,
     paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
   },
   actionButtonText: {
     fontSize: 14,
-    color: "#3498db",
+    color: "#3AAAD2",
+    marginLeft: 5,
+  },
+  actionIcon: {
+    width: 16,
+    height: 16,
+  },
+  iconSmall: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 5,
   },
   postHeaderLeft: {
     flexDirection: "row",
