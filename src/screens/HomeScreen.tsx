@@ -169,6 +169,13 @@ const HomeScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.timeline}
       />
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("CreatePost")} // 投稿作成画面に遷移
+      >
+        <Text style={styles.fabText}>＋</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -324,6 +331,28 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: "column",
     justifyContent: "center",
+  },
+
+  fab: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "#3AAAD2",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // Android用
+  },
+  fabText: {
+    fontSize: 30,
+    color: "#FFFFFF",
+    fontWeight: "bold",
   },
 });
 

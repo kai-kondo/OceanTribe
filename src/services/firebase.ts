@@ -8,6 +8,7 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyCdA6kC5YBwyKxIbC48-UZWpKCEUDuVwMg",
   authDomain: "oceantribe-fe515.firebaseapp.com",
+  databaseURL: "https://oceantribe-fe515-default-rtdb.firebaseio.com/",
   projectId: "oceantribe-fe515",
   storageBucket: "oceantribe-fe515.firebasestorage.app",
   messagingSenderId: "1041220018862",

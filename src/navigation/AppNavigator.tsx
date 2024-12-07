@@ -13,6 +13,8 @@ import EventDetailScreen from "../screens/EventDetailScreen";
 import NotificationScreen from "../screens/NotificationScreen";
 import NewsScreen from "../screens/NewsScreen";
 import MessagesScreen from "../screens/MessagesScreen";
+import CreatePostScreen from "../screens/CreatePostScreen"; // ファイルパスに応じて修正
+
 
 
 const Stack = createNativeStackNavigator();
@@ -69,6 +71,11 @@ const AppNavigator = () => {
             name="Main"
             component={BottomTabs}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="CreatePost"
+            component={CreatePostScreen}
+            options={{ title: "新しい投稿" }}
           />
           <Stack.Screen name="EventDetail" component={EventDetailScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
