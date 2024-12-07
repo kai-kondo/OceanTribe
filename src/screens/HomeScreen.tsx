@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,89 +9,81 @@ import {
   Dimensions,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
-import { useNavigation } from '@react-navigation/native';
-
-
+import { useNavigation } from "@react-navigation/native";
+import { getDatabase, ref, onValue } from "firebase/database"; // Firebase追加
 
 const { width } = Dimensions.get("window");
 
-interface NavItem {
-  name: string;
-  icon: any; // または正確な型 NodeRequire
-}
+type Post = {
+  id: string;
+  user: string;
+  avatarUrl?: string;
+  boardType?: string;
+  homePoint?: string;
+  time: string;
+  content: string;
+  media?: string;
+};
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
-  const [currentScreen, setCurrentScreen] = useState("Home");
+  const [posts, setPosts] = useState<Post[]>([]); // 型を明示的に定義
 
-  const navItems: NavItem[] = [
-    { name: "ホーム", icon: require("../assets/icons/home.png") },
-    { name: "イベント", icon: require("../assets/icons/event.png") },
-    { name: "ニュース", icon: require("../assets/icons/news.png") },
-    { name: "通知", icon: require("../assets/icons/notification.png") },
-    { name: "メッセージ", icon: require("../assets/icons/chat2.png") },
-  ];
-  const postsData = [
-    {
-      id: "1",
-      user: "Taro",
-      content: "今日は新しいコードを書きました！",
-      avatarUrl: "https://via.placeholder.com/50",
-      media: null,
-      time: "2分前",
-      boardType: "ロングボード",
-      homePoint: "茅ヶ崎/クソ下", // 追加
-    },
-    {
-      id: "2",
-      user: "Jiro",
-      content: "週末にビーチに行ってリラックスしました。",
-      avatarUrl: "https://via.placeholder.com/50",
-      media: "https://via.placeholder.com/300x200", // 画像の例
-      time: "1時間前",
-      boardType: "ボディーボード",
-      homePoint: "千葉北/片貝", // 追加
-    },
-    {
-      id: "3",
-      user: "Hanako",
-      content: "新しいボードを買ったので紹介します",
-      avatarUrl: "https://via.placeholder.com/50",
-      media: "https://www.w3schools.com/html/mov_bbb.mp4", // 動画の例
-      time: "3時間前",
-      boardType: "ショートボード",
-      homePoint: "高知/生見", // 追加
-    },
-  ];
+  // Firebaseからデータをェッチ
+  useEffect(() => {
+    const db = getDatabase();
+    const postsRef = ref(db, "posts");
 
+    const unsubscribe = onValue(postsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Firebaseデータを配列に変換
+        const postsArray = Object.entries(data).map(([id, value]: any) => ({
+          id,
+          ...value,
+        }));
+        setPosts(postsArray);
+      }
+    });
+
+    return () => unsubscribe(); // クリーンアップ
+  }, []);
+
+  // 投稿のレンダリング
   const renderPostItem = ({ item }: any) => (
     <View style={styles.postCard}>
       {/* ヘッダー部分 */}
       <View style={styles.postHeader}>
         <View style={styles.postHeaderLeft}>
-          <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
+          <Image
+            source={{ uri: item.avatarUrl || "https://via.placeholder.com/50" }}
+            style={styles.avatar}
+          />
           <View style={styles.userInfo}>
             <Text style={styles.userName}>
               {item.user}{" "}
-              <Text style={styles.boardType}>({item.boardType})</Text>
+              <Text style={styles.boardType}>({item.boardType || "不明"})</Text>
             </Text>
             <View style={styles.homePointContainer}>
               <Image
-                source={require("../assets/icons/surfing.png")} // アイン画像のパス
+                source={require("../assets/icons/surfing.png")}
                 style={styles.homePointIcon}
               />
-              <Text style={styles.homePointText}>{item.homePoint}</Text>
+              <Text style={styles.homePointText}>
+                {item.homePoint || "未設定"}
+              </Text>
             </View>
           </View>
         </View>
-        <Text style={styles.postTime}>{item.time}</Text>{" "}
-        {/* 投稿時間を右上に配置 */}
+        <Text style={styles.postTime}>
+          {new Date(item.time).toLocaleString()}
+        </Text>
       </View>
 
       {/* 投稿内容 */}
       <Text style={styles.postContent}>{item.content}</Text>
 
-      {/*メディア (画像または動画) */}
+      {/* メディア (画像または動画) */}
       {item.media && (
         <View style={styles.mediaContainer}>
           {item.media.endsWith(".mp4") ? (
@@ -136,11 +128,11 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 上部フッター */}
+      {/* 上部ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={require("../assets/icons/OceanTribe2.png")} // 正しい相対パスに変更
+            source={require("../assets/icons/OceanTribe2.png")}
             style={styles.headerIcon}
           />
           <Text style={styles.headerTitle}>OCEANTRIBE</Text>
@@ -148,13 +140,13 @@ const HomeScreen = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity>
             <Image
-              source={require("../assets/icons/sarch.png")} // 検索アイコンURL
+              source={require("../assets/icons/sarch.png")}
               style={styles.searchIcon}
             />
           </TouchableOpacity>
           <TouchableOpacity>
             <Image
-              source={require("../assets/icons/GX011341_FrameGrab_04.jpg")} // アバターイコンのURL
+              source={require("../assets/icons/GX011341_FrameGrab_04.jpg")}
               style={styles.avatar}
             />
           </TouchableOpacity>
@@ -163,7 +155,7 @@ const HomeScreen = () => {
 
       {/* タイムライン */}
       <FlatList
-        data={postsData}
+        data={posts}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
@@ -172,7 +164,7 @@ const HomeScreen = () => {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate("CreatePost")} // 投稿作成画面に遷移
+        onPress={() => navigation.navigate("CreatePost")}
       >
         <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>

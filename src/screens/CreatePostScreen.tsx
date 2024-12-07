@@ -8,13 +8,15 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { getDatabase, ref, push } from "firebase/database";
 
 const CreatePostScreen = ({ navigation }: any) => {
   const [content, setContent] = useState("");
-  const [media, setMedia] = useState<string | null>(null); // メディアのURLを保存
+  const [media, setMedia] = useState<string | null>(null);
 
   // メディア選択
   const handleSelectMedia = async () => {
@@ -42,7 +44,7 @@ const CreatePostScreen = ({ navigation }: any) => {
     push(postsRef, {
       user: "ユーザー名", // 実際のログインユーザー名を設定
       content,
-      media, // メディアURLを追加
+      media,
       time: new Date().toISOString(),
     })
       .then(() => {
@@ -55,47 +57,54 @@ const CreatePostScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* ヘッダー */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.cancelText}>キャンセル</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.postButton} onPress={handlePostSubmit}>
-          <Text style={styles.postButtonText}>投稿</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 投稿内容入力 */}
-      <View style={styles.contentContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="いまどうしてる？"
-          value={content}
-          onChangeText={setContent}
-          multiline
-        />
-      </View>
-
-      {/* メディアプレビュー */}
-      {media && (
-        <View style={styles.mediaPreviewContainer}>
-          {media.endsWith(".mp4") ? (
-            <Text style={styles.mediaPlaceholder}>動画が選択されています</Text>
-          ) : (
-            <Image source={{ uri: media }} style={styles.mediaPreview} />
-          )}
+    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+      <View style={styles.container}>
+        {/* ヘッダー */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.cancelText}>キャンセル</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.postButton}
+            onPress={handlePostSubmit}
+          >
+            <Text style={styles.postButtonText}>投稿</Text>
+          </TouchableOpacity>
         </View>
-      )}
 
-      {/* メディア選択ボタン */}
-      <TouchableOpacity
-        style={styles.addMediaButton}
-        onPress={handleSelectMedia}
-      >
-        <Text style={styles.addMediaText}>メディアを追加</Text>
-      </TouchableOpacity>
-    </View>
+        {/* 投稿内容入力 */}
+        <View style={styles.contentContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="いまどうしてる？"
+            value={content}
+            onChangeText={setContent}
+            multiline
+          />
+        </View>
+
+        {/* メディアプレビュー */}
+        {media && (
+          <View style={styles.mediaPreviewContainer}>
+            {media.endsWith(".mp4") ? (
+              <Text style={styles.mediaPlaceholder}>
+                動画が選択されています
+              </Text>
+            ) : (
+              <Image source={{ uri: media }} style={styles.mediaPreview} />
+            )}
+          </View>
+        )}
+
+        {/* メディア選択ボタン */}
+        <TouchableOpacity
+          style={styles.addMediaButton}
+          onPress={handleSelectMedia}
+        >
+          <Text style={styles.addMediaText}>メディアを追加</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
 
