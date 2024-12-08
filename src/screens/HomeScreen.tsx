@@ -10,75 +10,83 @@ import {
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { useNavigation } from "@react-navigation/native";
-import { getDatabase, ref, onValue } from "firebase/database"; // Firebase追加
+import { getDatabase, ref, get, onValue } from "firebase/database";
 
 const { width } = Dimensions.get("window");
 
 type Post = {
   id: string;
-  user: string;
-  avatarUrl?: string;
-  boardType?: string;
-  homePoint?: string;
-  time: string;
+  userId: string;
   content: string;
   media?: string;
+  userData?: User;
 };
 
 type User = {
-  userName: string;
+  username: string;
   avatarUrl?: string;
   boardType?: string;
   homePoint?: string;
+  mediaUrl?: string;
 };
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
-  const [posts, setPosts] = useState<Post[]>([]); // 型を明示的に定義
-  const [users, setUsers] = useState<{ [key: string]: User }>({}); // usersの型を定義
+  const [posts, setPosts] = useState<Post[]>([]);
 
-  // Firebaseからデータをェッチ
   useEffect(() => {
     const db = getDatabase();
     const postsRef = ref(db, "posts");
     const usersRef = ref(db, "users");
 
-    const unsubscribe = onValue(postsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        // Firebaseデータを列に変換
-        const postsArray = Object.entries(data).map(([id, value]: any) => ({
-          id,
-          ...value,
-        }));
-        setPosts(postsArray);
+    const fetchPostsAndUsers = async () => {
+      try {
+        const [postsSnapshot, usersSnapshot] = await Promise.all([
+          get(postsRef),
+          get(usersRef),
+        ]);
+
+        const postsData = postsSnapshot.val() || {};
+        const usersData = usersSnapshot.val() || {};
+
+        const combinedData = Object.entries(postsData).map(
+          ([id, post]: [string, any]) => ({
+            id,
+            ...post,
+            userData: usersData[post.userId] || null,
+          })
+        );
+
+        setPosts(combinedData);
+      } catch (error) {
+        console.error("データの取得中にエラーが発生しました:", error);
       }
-    });
+    };
 
-    // ユーザー情報の取得
-    const unsubscribeUsers = onValue(usersRef, (snapshot) => {
-      const userData = snapshot.val();
-      setUsers(userData);
-    });
+    // リアルタイムリスナーを追加
+    const unsubscribePosts = onValue(ref(db, "posts"), fetchPostsAndUsers);
+    const unsubscribeUsers = onValue(ref(db, "users"), fetchPostsAndUsers);
 
-    return () => unsubscribe(); // クリーンアップ
+    return () => {
+      // コンポーネントのアンマウント時にリスナーを削除
+      unsubscribePosts();
+      unsubscribeUsers();
+    };
   }, []);
 
-  // 投稿のレンダリング
-  const renderPostItem = ({ item }: any) => {
-    const user = users[item.user];
+  const renderPostItem = ({ item }: { item: Post }) => {
+    const user = item.userData;
 
     return (
       <View style={styles.postCard}>
         <Image
-          source={{ uri: user?.avatarUrl || "https://via.placeholder.com/50" }}
+          source={{ uri: user?.mediaUrl || "https://via.placeholder.com/50" }}
           style={styles.avatar}
         />
-        {/* ヘッダー部分 */}
         <View style={styles.postHeader}>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>
-              {user?.userName || "不明ユーザー"}
+              {user?.username || "不明ユーザー"}
             </Text>
             <Text style={styles.boardType}>
               使用ボード: {user?.boardType || "不明"}
@@ -94,9 +102,7 @@ const HomeScreen = () => {
             </View>
           </View>
         </View>
-        {/* 投稿内容 */}
         <Text style={styles.postContent}>{item.content}</Text>
-        {/* メディア表示 */}
         {item.media && (
           <View style={styles.mediaContainer}>
             {item.media.endsWith(".mp4") ? (
@@ -111,7 +117,7 @@ const HomeScreen = () => {
             )}
           </View>
         )}
-        {/* アクションバー */}
+          {/* アクションバー */}
         <View style={styles.actionBar}>
           <TouchableOpacity style={styles.actionButton}>
             <Image
@@ -120,6 +126,22 @@ const HomeScreen = () => {
             />
             <Text style={styles.actionButtonText}>いいね</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton}>
+            <Image
+              source={require("../assets/icons/comment.png")}
+              style={styles.actionIcon}
+            />
+            <Text style={styles.actionButtonText}>コメント</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton}>
+            <Image
+              source={require("../assets/icons/share.png")}
+              style={styles.actionIcon}
+            />
+            <Text style={styles.actionButtonText}>共有</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -127,7 +149,6 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 上部ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
@@ -152,13 +173,12 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* タイムライン */}
       <FlatList
         data={posts}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.timeline}
+        showsVerticalScrollIndicator={false}
       />
 
       <TouchableOpacity
