@@ -13,12 +13,13 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { getDatabase, ref, push } from "firebase/database";
+import { getAuth } from "firebase/auth";
 
 const CreatePostScreen = ({ navigation }: any) => {
   const [content, setContent] = useState("");
   const [media, setMedia] = useState<string | null>(null);
 
-  // メディア選択
+  // メディア選択処理
   const handleSelectMedia = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -33,16 +34,28 @@ const CreatePostScreen = ({ navigation }: any) => {
 
   // 投稿処理
   const handlePostSubmit = () => {
+    const user = getAuth().currentUser;
+
+    if (!user) {
+      Alert.alert("ログインしていません。再度ログインしてください！");
+      return;
+    }
+
     if (!content.trim() && !media) {
       Alert.alert("投稿内容またはメディアを追加してください！");
       return;
     }
 
-    const db = getDatabase(); // FirebaseのRealtime Database
+    const db = getDatabase();
     const postsRef = ref(db, "posts");
 
+    // Firebase Authenticationからユーザー情報を取得
+    const userId = user.uid;
+    const username = user.displayName || "匿名ユーザー";
+
     push(postsRef, {
-      user: "ユーザー名", // 実際のログインユーザー名を設定
+      userId,
+      username,
       content,
       media,
       time: new Date().toISOString(),
@@ -59,7 +72,6 @@ const CreatePostScreen = ({ navigation }: any) => {
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
-        {/* ヘッダー */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.cancelText}>キャンセル</Text>
@@ -72,7 +84,6 @@ const CreatePostScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* 投稿内容入力 */}
         <View style={styles.contentContainer}>
           <TextInput
             style={styles.input}
@@ -83,7 +94,6 @@ const CreatePostScreen = ({ navigation }: any) => {
           />
         </View>
 
-        {/* メディアプレビュー */}
         {media && (
           <View style={styles.mediaPreviewContainer}>
             {media.endsWith(".mp4") ? (
@@ -96,7 +106,6 @@ const CreatePostScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* メディア選択ボタン */}
         <TouchableOpacity
           style={styles.addMediaButton}
           onPress={handleSelectMedia}
@@ -146,22 +155,6 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     flex: 1,
   },
-  mediaPreviewContainer: {
-    paddingHorizontal: 15,
-    marginBottom: 10,
-  },
-  mediaPreview: {
-    width: "100%",
-    height: 200,
-    borderRadius: 10,
-  },
-  mediaPlaceholder: {
-    textAlign: "center",
-    padding: 20,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 10,
-    color: "#777",
-  },
   addMediaButton: {
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -174,6 +167,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     color: "#555",
+  },
+  mediaPreviewContainer: {
+    marginVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mediaPreview: {
+    width: "100%",
+    height: 200,
+    resizeMode: "cover",
+  },
+  mediaPlaceholder: {
+    // プレースホルダーのスタイルを追加
   },
 });
 

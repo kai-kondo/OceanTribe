@@ -14,6 +14,7 @@ import NotificationScreen from "../screens/NotificationScreen";
 import NewsScreen from "../screens/NewsScreen";
 import MessagesScreen from "../screens/MessagesScreen";
 import CreatePostScreen from "../screens/CreatePostScreen"; // ファイルパスに応じて修正
+import ProfileCreateScreen from "../screens/ProfileCreateScreen";
 
 
 
@@ -78,7 +79,12 @@ const AppNavigator = () => {
             options={{ title: "新しい投稿" }}
           />
           <Stack.Screen name="EventDetail" component={EventDetailScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="ProfileCreate" component={ProfileCreateScreen} />
         </Stack.Navigator>
       </SafeAreaView>
     </NavigationContainer>

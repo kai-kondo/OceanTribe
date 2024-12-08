@@ -50,7 +50,7 @@ const LoginScreen = ({ navigation }: Props) => {
         <View style={styles.gradientOverlay}>
           <View style={styles.headerContainer}>
             <Image
-              source={require("../assets/icons/OceanTribe2.png")}
+              source={require("../assets/icons/iconmain3.png")}
               style={styles.logo}
             />
             <Text style={styles.title}>OceanTribe</Text>

@@ -3,7 +3,11 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  onAuthStateChanged as firebaseOnAuthStateChanged,
 } from "firebase/auth";
+import { getStorage } from "firebase/storage";
+import { getFirestore } from "firebase/firestore";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyCdA6kC5YBwyKxIbC48-UZWpKCEUDuVwMg",
@@ -17,16 +21,29 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const auth = getAuth();
+if (auth.currentUser) {
+  console.log(auth.currentUser.uid);
+}
+const storage = getStorage(app);
+const firestore = getFirestore(app);
+
 
 // ユーザ登録
-export const signup = async (email: string, password: string) => {
+export const signup = async (email:any, password:any) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log("Success to Signup", userCredential.user);
-    return userCredential;
+    // ユーザー作成
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const user = userCredential.user;
+
+    // 登録後に自動ログイン状態にする
+    console.log("ユーザー登録完了。UID:", user.uid);
+    return user;
   } catch (error) {
-    console.error(error);
     throw error;
   }
 };
@@ -43,4 +60,6 @@ export const login = async (email: string, password: string) => {
   }
 };
 
-export { auth };
+export const onAuthStateChanged = firebaseOnAuthStateChanged;
+
+export { auth, storage, firestore};

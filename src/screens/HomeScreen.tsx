@@ -25,19 +25,28 @@ type Post = {
   media?: string;
 };
 
+type User = {
+  userName: string;
+  avatarUrl?: string;
+  boardType?: string;
+  homePoint?: string;
+};
+
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const [posts, setPosts] = useState<Post[]>([]); // 型を明示的に定義
+  const [users, setUsers] = useState<{ [key: string]: User }>({}); // usersの型を定義
 
   // Firebaseからデータをェッチ
   useEffect(() => {
     const db = getDatabase();
     const postsRef = ref(db, "posts");
+    const usersRef = ref(db, "users");
 
     const unsubscribe = onValue(postsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Firebaseデータを配列に変換
+        // Firebaseデータを列に変換
         const postsArray = Object.entries(data).map(([id, value]: any) => ({
           id,
           ...value,
@@ -46,23 +55,33 @@ const HomeScreen = () => {
       }
     });
 
+    // ユーザー情報の取得
+    const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+      const userData = snapshot.val();
+      setUsers(userData);
+    });
+
     return () => unsubscribe(); // クリーンアップ
   }, []);
 
   // 投稿のレンダリング
-  const renderPostItem = ({ item }: any) => (
-    <View style={styles.postCard}>
-      {/* ヘッダー部分 */}
-      <View style={styles.postHeader}>
-        <View style={styles.postHeaderLeft}>
-          <Image
-            source={{ uri: item.avatarUrl || "https://via.placeholder.com/50" }}
-            style={styles.avatar}
-          />
+  const renderPostItem = ({ item }: any) => {
+    const user = users[item.user];
+
+    return (
+      <View style={styles.postCard}>
+        <Image
+          source={{ uri: user?.avatarUrl || "https://via.placeholder.com/50" }}
+          style={styles.avatar}
+        />
+        {/* ヘッダー部分 */}
+        <View style={styles.postHeader}>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>
-              {item.user}{" "}
-              <Text style={styles.boardType}>({item.boardType || "不明"})</Text>
+              {user?.userName || "不明ユーザー"}
+            </Text>
+            <Text style={styles.boardType}>
+              使用ボード: {user?.boardType || "不明"}
             </Text>
             <View style={styles.homePointContainer}>
               <Image
@@ -70,61 +89,41 @@ const HomeScreen = () => {
                 style={styles.homePointIcon}
               />
               <Text style={styles.homePointText}>
-                {item.homePoint || "未設定"}
+                ホームポイント: {user?.homePoint || "未設定"}
               </Text>
             </View>
           </View>
         </View>
-        <Text style={styles.postTime}>
-          {new Date(item.time).toLocaleString()}
-        </Text>
-      </View>
-
-      {/* 投稿内容 */}
-      <Text style={styles.postContent}>{item.content}</Text>
-
-      {/* メディア (画像または動画) */}
-      {item.media && (
-        <View style={styles.mediaContainer}>
-          {item.media.endsWith(".mp4") ? (
-            <Video
-              source={{ uri: item.media }}
-              style={styles.media}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
+        {/* 投稿内容 */}
+        <Text style={styles.postContent}>{item.content}</Text>
+        {/* メディア表示 */}
+        {item.media && (
+          <View style={styles.mediaContainer}>
+            {item.media.endsWith(".mp4") ? (
+              <Video
+                source={{ uri: item.media }}
+                style={styles.media}
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+              />
+            ) : (
+              <Image source={{ uri: item.media }} style={styles.media} />
+            )}
+          </View>
+        )}
+        {/* アクションバー */}
+        <View style={styles.actionBar}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Image
+              source={require("../assets/icons/like.png")}
+              style={styles.actionIcon}
             />
-          ) : (
-            <Image source={{ uri: item.media }} style={styles.media} />
-          )}
+            <Text style={styles.actionButtonText}>いいね</Text>
+          </TouchableOpacity>
         </View>
-      )}
-
-      {/* アクションバー */}
-      <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Image
-            source={require("../assets/icons/like.png")}
-            style={styles.actionIcon}
-          />
-          <Text style={styles.actionButtonText}>いいね</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Image
-            source={require("../assets/icons/comment.png")}
-            style={styles.actionIcon}
-          />
-          <Text style={styles.actionButtonText}>コメント</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Image
-            source={require("../assets/icons/share.png")}
-            style={styles.actionIcon}
-          />
-          <Text style={styles.actionButtonText}>共有</Text>
-        </TouchableOpacity>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -132,7 +131,7 @@ const HomeScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={require("../assets/icons/OceanTribe2.png")}
+            source={require("../assets/icons/iconmain3.png")}
             style={styles.headerIcon}
           />
           <Text style={styles.headerTitle}>OCEANTRIBE</Text>
@@ -144,7 +143,7 @@ const HomeScreen = () => {
               style={styles.searchIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
             <Image
               source={require("../assets/icons/GX011341_FrameGrab_04.jpg")}
               style={styles.avatar}

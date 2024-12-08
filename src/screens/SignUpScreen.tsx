@@ -7,14 +7,19 @@ import {
   StyleSheet,
   ImageBackground,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { signup } from "../services/firebase"; // 正しいパスに修正
+import { signup, auth, onAuthStateChanged } from "../services/firebase";
 
-type RootStackParamList = {
-  Home: undefined;
+
+export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
+  Main: {
+    screen: "Home" | "Event" | "News" | "Notification" | "Messages";
+  };
+  ProfileCreate: undefined;
 };
 
 type Props = {
@@ -26,39 +31,51 @@ const SignUpScreen = ({ navigation }: Props) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (password !== confirmPassword) {
       alert("パスワードが一致しません");
       return;
     }
 
-    signup(email, password)
-      .then(() => {
-        alert("登録が完了しました");
-        navigation.navigate("Home");
-      })
-      .catch((error:any) => {
-        alert(`登録に失敗しました: ${error.message}`);
-      });
+    try {
+      const user = await signup(email, password);
+
+      if (user) {
+        alert("登録が完了しました！");
+        // 認証状態の確認処理
+        onAuthStateChanged(auth, (currentUser) => {
+          if (currentUser) {
+            console.log("ユーザー認証完了:", currentUser.uid);
+            navigation.navigate("ProfileCreate");
+          } else {
+            console.log("ユーザー認証エラー");
+          }
+        });
+      }
+    } catch (error: any) {
+      alert(`登録に失敗しました！${error.message}`);
+    }
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ImageBackground
         source={require("../assets/images/login.jpg")}
         style={styles.backgroundImage}
         imageStyle={{ opacity: 0.7 }}
       >
         <View style={styles.gradientOverlay}>
+          {/* ヘッダー */}
           <View style={styles.headerContainer}>
             <Image
-              source={require("../assets/icons/OceanTribe2.png")}
+              source={require("../assets/icons/iconmain3.png")}
               style={styles.logo}
             />
             <Text style={styles.title}>OceanTribe</Text>
             <Text style={styles.subtitle}>Join the Tribe, Ride the Waves</Text>
           </View>
 
+          {/* フォームコンテナ */}
           <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
@@ -87,6 +104,7 @@ const SignUpScreen = ({ navigation }: Props) => {
             <TouchableOpacity style={styles.button} onPress={handleSignUp}>
               <Text style={styles.buttonText}>新規登録</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.loginLink}
               onPress={() => navigation.navigate("Login")}
@@ -98,7 +116,7 @@ const SignUpScreen = ({ navigation }: Props) => {
           </View>
         </View>
       </ImageBackground>
-    </View>
+    </SafeAreaView>
   );
 };
 
