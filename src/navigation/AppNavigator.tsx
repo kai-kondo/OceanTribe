@@ -10,6 +10,7 @@ import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import EventScreen from "../screens/EventScreen";
 import EventDetailScreen from "../screens/EventDetailScreen";
+import EventCreateScreen from "../screens/EventCreateScreen"; // パスを確認・修正
 import NotificationScreen from "../screens/NotificationScreen";
 import NewsScreen from "../screens/NewsScreen";
 import MessagesScreen from "../screens/MessagesScreen";
@@ -78,7 +79,9 @@ const AppNavigator = () => {
             component={CreatePostScreen}
             options={{ title: "新しい投稿" }}
           />
+          <Stack.Screen name="EventScreen" component={EventScreen} />
           <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+          <Stack.Screen name="EventCreate" component={EventCreateScreen} />
           <Stack.Screen
             name="Profile"
             component={ProfileScreen}

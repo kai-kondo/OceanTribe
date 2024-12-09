@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,201 +6,230 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  TextInput,
 } from "react-native";
+import { getDatabase, ref, onValue, update, get } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { getAuth } from "firebase/auth";
+
+type Event = {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  description?: string;
+  image?: string;
+  mediaUrl?: string;
+  tags?: string[];
+  attendees?: string[];
+};
+
+type RootStackParamList = {
+  EventCreate: undefined;
+  EventDetail: { eventId: string };
+};
+
+const EventScreen = () => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [events, setEvents] = useState<Event[]>([]);
+  const auth = getAuth();
 
 
-const eventsData = [
-  {
-    id: "1",
-    title: "サーフィン大会",
-    date: "2024-12-10",
-    location: "湘南",
-    description: "楽しいサーフィン大会！参加者募集中。",
-    image: "https://via.placeholder.com/300x200",
-    organizer: "湘南サーフクラブ",
-    attendees: 120,
-    tags: ["スポーツ", "アウトドア", "湘南"],
-    rsvpLink: "https://example.com/rsvp",
-  },
-  {
-    id: "2",
-    title: "海の清掃活動",
-    date: "2024-12-15",
-    location: "茅ヶ崎",
-    description: "海の清掃活動に参加して環境保護に貢献。",
-    image: "https://via.placeholder.com/300x200",
-    organizer: "環境ボランティア団体",
-    attendees: 50,
-    tags: ["環境", "ボランティア", "茅ヶ崎"],
-    rsvpLink: "https://example.com/rsvp",
-  },
-];
+  useEffect(() => {
+    const db = getDatabase();
+    const eventsRef = ref(db, "events");
 
-const EventScreen = ({ navigation }: any) => {
-  const [searchText, setSearchText] = useState("");
-  const [filter, setFilter] = useState("all");
+    const fetchEvents = () => {
+      onValue(eventsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const formattedEvents = Object.entries(data).map(
+          ([id, event]: [string, any]) => ({
+            id,
+            ...event,
+          })
+        );
+        setEvents(formattedEvents);
+      });
+    };
 
-  const filteredEvents = eventsData
-    .filter((event) => {
-      if (filter === "all") return true;
-      if (filter === "today") return event.date === "2024-12-10";
-      if (filter === "tomorrow") return event.date === "2024-12-11";
-      if (filter === "weekend") return event.date === "2024-12-15";
-      return true;
-    })
-    .filter((event) =>
-      event.title.toLowerCase().includes(searchText.toLowerCase())
-    );
+    fetchEvents();
+  }, []);
 
-  const renderEventItem = ({ item }: any) => (
-    <View style={styles.card}>
-      <Image source={{ uri: item.image }} style={styles.cardImage} />
-      <View style={styles.eventDetails}>
-        <Text style={styles.eventTitle}>{item.title}</Text>
-        <Text style={styles.eventDate}>
-          {item.date} | {item.location}
+  const handleJoin = async (eventId: string) => {
+    const user = auth.currentUser;
+
+    if (!user) {
+      alert("ログインが必要です。");
+      return;
+    }
+
+    const db = getDatabase();
+    const eventRef = ref(db, `events/${eventId}`);
+
+    try {
+      const snapshot = await get(eventRef);
+      const currentEvent = snapshot.val();
+
+      if (!currentEvent) return;
+
+      const currentAttendees = currentEvent.attendees || [];
+      const userId = user.uid;
+
+      if (currentAttendees.includes(userId)) {
+        alert("既にこのイベントに参加しています！");
+        return;
+      }
+
+      // 参加者リストを更新してFirebaseに保存
+      const updatedAttendees = [...currentAttendees, userId];
+
+      await update(eventRef, {
+        attendees: updatedAttendees,
+      });
+
+      alert("参加登録しました！");
+
+      // リストをリフレッシュして最新参加者数を反映
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId
+            ? { ...event, attendees: updatedAttendees }
+            : event
+        )
+      );
+    } catch (error) {
+      console.error("参加登録エラー:", error);
+      alert("エラーが発生しました。再試行してください。");
+    }
+  };
+
+
+  const renderEventItem = ({ item }: { item: Event }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("EventDetail", { eventId: item.id })}
+    >
+      {item.mediaUrl && (
+        <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
+      )}
+      <View style={styles.cardContent}>
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.date}>
+          📅 {item.date} | 📍 {item.location}
         </Text>
-        <Text style={styles.eventDescription}>{item.description}</Text>
+        <Text style={styles.attendees}>
+          👥 参加者数: {item.attendees ? item.attendees.length : 0}
+        </Text>
 
-        <TouchableOpacity style={styles.joinButton}>
-          <Text style={styles.buttonText}>参加する</Text>
-        </TouchableOpacity>
+        {/* タグ表示 */}
+        {item.tags && item.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {item.tags.map((tag, index) => (
+              <Text key={index} style={styles.tag}>
+                {tag}
+              </Text>
+            ))}
+          </View>
+        )}
 
+        {/* 参加ボタン */}
         <TouchableOpacity
-          style={styles.detailButton}
-          onPress={() => navigation.navigate("EventDetail", { event: item })}
+          style={styles.joinButton}
+          onPress={() => handleJoin(item.id)}
         >
-          <Text style={styles.detailButtonText}>詳細</Text>
+          <Text style={styles.joinButtonText}>参加してみる</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      {/* コンテンツ部分 */}
-      <View style={styles.content}>
-        {/* 検索バー */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            placeholder="イベントを検索"
-            style={styles.searchInput}
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-        </View>
-
-        {/* フィルタリングタグ */}
-        <View style={styles.filterContainer}>
-          {["All", "Today", "Tomorrow", "Weekend"].map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={
-                filter === option.toLowerCase()
-                  ? styles.selectedFilterTag
-                  : styles.filterTag
-              }
-              onPress={() => setFilter(option.toLowerCase())}
-            >
-              <Text>{option}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* イベントリスト */}
-        <FlatList
-          data={filteredEvents}
-          renderItem={renderEventItem}
-          keyExtractor={(item) => item.id}
+      <View style={styles.header}>
+        <Image
+          source={require("../assets/icons/iconmain3.png")}
+          style={styles.logo}
         />
+        <Text style={styles.headerTitle}>イベント</Text>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => navigation.navigate("EventCreate")}
+        >
+          <Text style={styles.fabText}>＋</Text>
+        </TouchableOpacity>
       </View>
 
+      <FlatList
+        data={events}
+        renderItem={renderEventItem}
+        keyExtractor={(event) => event.id}
+        contentContainerStyle={styles.listContent}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  searchContainer: {
-    paddingHorizontal: 10,
-    backgroundColor: "#fff",
-    marginVertical: 15,
-    borderRadius: 8,
-  },
-  searchInput: {
-    padding: 10,
-  },
-  filterContainer: {
+  container: { flex: 1, backgroundColor: "#F5F5F5" },
+
+  header: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 15,
     paddingVertical: 10,
+    backgroundColor: "#3AAAD2",
   },
-  filterTag: {
-    padding: 10,
-    backgroundColor: "#ddd",
+  logo: { width: 30, height: 30, resizeMode: "contain" },
+  headerTitle: { color: "#fff", fontSize: 24, fontWeight: "bold" },
+  fab: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#FF5733",
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 20,
   },
-  selectedFilterTag: {
-    padding: 10,
-    backgroundColor: "#1e90ff",
-    borderRadius: 20,
-  },
+  fabText: { color: "#fff", fontSize: 28, fontWeight: "bold" },
+
+  listContent: { paddingHorizontal: 10 },
+
   card: {
     backgroundColor: "#fff",
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
-  },
-  cardImage: {
-    height: 200,
-    width: "100%",
-    borderRadius: 10,
-  },
-  eventDetails: {
-    marginTop: 10,
-  },
-  eventTitle: {
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-  eventDate: {
-    color: "gray",
-  },
-  eventDescription: {
-    fontSize: 14,
-    color: "#666",
-  },
-  joinButton: {
     marginVertical: 10,
-    backgroundColor: "#28a745",
-    paddingVertical: 12,
-    borderRadius: 5,
-    alignItems: "center",
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    padding: 15,
+    overflow: "hidden",
   },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  detailButton: {
+  cardImage: { width: "100%", height: 180, borderRadius: 15 },
+  cardContent: { paddingVertical: 10 },
+  title: { fontSize: 22, fontWeight: "bold", color: "#333" },
+  date: { fontSize: 14, color: "#777" },
+  attendees: { fontSize: 16, color: "#007BFF", marginTop: 5 },
+  joinButton: {
+    marginTop: 15,
     backgroundColor: "#007BFF",
-    paddingVertical: 12,
-    borderRadius: 5,
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: "center",
   },
-  detailButtonText: {
-    color: "white",
-    fontWeight: "bold",
+  joinButtonText: { color: "#fff", fontWeight: "bold", fontSize: 18 },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginVertical: 10,
+  },
+  tag: {
+    backgroundColor: "#3AAAD2",
+    color: "#fff",
+    padding: 5,
+    borderRadius: 5,
+    marginRight: 5,
+    marginBottom: 5,
   },
 });
 
