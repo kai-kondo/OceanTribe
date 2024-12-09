@@ -11,6 +11,7 @@ import {
 import { Video, ResizeMode } from "expo-av";
 import { useNavigation } from "@react-navigation/native";
 import { getDatabase, ref, get, onValue } from "firebase/database";
+import { getAuth } from "firebase/auth";
 
 const { width } = Dimensions.get("window");
 
@@ -33,6 +34,7 @@ type User = {
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [userData, setUserData] = useState<User | null>(null);
 
   useEffect(() => {
     const db = getDatabase();
@@ -72,6 +74,21 @@ const HomeScreen = () => {
       unsubscribePosts();
       unsubscribeUsers();
     };
+  }, []);
+
+  useEffect(() => {
+    const db = getDatabase();
+    const usersRef = ref(db, "users");
+
+    const fetchUserData = async () => {
+      const user = getAuth().currentUser;
+      if (user) {
+        const userSnapshot = await get(ref(db, `users/${user.uid}`));
+        setUserData(userSnapshot.val() || null);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
   const renderPostItem = ({ item }: { item: Post }) => {
@@ -165,10 +182,17 @@ const HomeScreen = () => {
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-            <Image
-              source={require("../assets/icons/GX011341_FrameGrab_04.jpg")}
-              style={styles.avatar}
-            />
+            {userData?.mediaUrl ? (
+              <Image
+                source={{ uri: userData.mediaUrl }}
+                style={styles.avatar}
+              />
+            ) : (
+              <Image
+                source={require("../assets/icons/notification.png")}
+                style={styles.avatar}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
