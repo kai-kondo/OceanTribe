@@ -96,12 +96,12 @@ const HomeScreen = () => {
 
     return (
       <View style={styles.postCard}>
-        <Image
-          source={{ uri: user?.mediaUrl || "https://via.placeholder.com/50" }}
-          style={styles.avatar}
-        />
         <View style={styles.postHeader}>
-          <View style={styles.userInfo}>
+          <Image
+            source={{ uri: user?.mediaUrl || "https://via.placeholder.com/50" }}
+            style={styles.avatar}
+          />
+          <View style={styles.userInfoContainer}>
             <Text style={styles.userName}>
               {user?.username || "不明ユーザー"}
             </Text>
@@ -119,7 +119,6 @@ const HomeScreen = () => {
             </View>
           </View>
         </View>
-        <Text style={styles.postContent}>{item.content}</Text>
         {item.media && (
           <View style={styles.mediaContainer}>
             {item.media.endsWith(".mp4") ? (
@@ -134,7 +133,9 @@ const HomeScreen = () => {
             )}
           </View>
         )}
-          {/* アクションバー */}
+
+        <Text style={styles.postContent}>{item.content}</Text>
+        {/* アクションバー */}
         <View style={styles.actionBar}>
           <TouchableOpacity style={styles.actionButton}>
             <Image
@@ -218,7 +219,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F4F4", // 明るいグレー背景
+    backgroundColor: "#F5F5F5", // 優しい背景色
   },
   header: {
     flexDirection: "row",
@@ -226,166 +227,150 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 15,
     paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
     backgroundColor: "#3AAAD2",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8, // Android用の影強調
-    borderBottomWidth: 0, // 角の丸みを無効化するために追加
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
   },
   headerIcon: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     resizeMode: "contain",
+    marginRight: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: "#FFF",
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
   },
   searchIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 15,
+    width: 24,
+    height: 24,
+    tintColor: "#555555",
+    marginRight: 20,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25, // 丸型アバター
+    marginRight: 10, // アバターとテキスト間の余白
   },
   timeline: {
-    padding: 10,
+    paddingBottom: 10,
   },
   postCard: {
+    marginBottom: 15,
     backgroundColor: "#FFFFFF",
-    padding: 15,
-    marginBottom: 8,
+    borderRadius: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    width: width,
-    alignSelf: "center",
-    borderRadius: 10, // 角丸追加
+    shadowRadius: 3,
+    elevation: 2,
+    overflow: "hidden",
   },
-
   postHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+  userInfo: {
+    marginLeft: 12,
+  },
+  userInfoContainer: {
+    flex: 1, // 横幅を占有
   },
   userName: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#2C3E50",
+    color: "#333333",
+    marginBottom: 4, // 項目間の余白
   },
   boardType: {
     fontSize: 14,
     color: "#7F8C8D",
-  },
-  postTime: {
-    fontSize: 12,
-    color: "#95A5A6",
-  },
-  postContent: {
-    fontSize: 14,
-    color: "#2C3E50",
-    marginBottom: 10,
+    marginBottom: 4,
   },
   homePointContainer: {
-    flexDirection: "row",
+    flexDirection: "row", // 横並び
     alignItems: "center",
   },
   homePointIcon: {
     width: 16,
     height: 16,
     resizeMode: "contain",
+    marginRight: 6, // アイコンとテキストの間
   },
   homePointText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#3AAAD2",
-    marginLeft: 5,
+  },
+  postContent: {
+    fontSize: 15,
+    color: "#333333",
+    marginVertical: 10,
+    paddingHorizontal: 12,
+    lineHeight: 20,
   },
   mediaContainer: {
-    marginBottom: 10,
+    width: "100%",
+    aspectRatio: 1, // 正方形を維持
+    backgroundColor: "#F9F9F9",
   },
   media: {
-    width: width - 40,
-    height: (width - 40) * 0.56,
-    borderRadius: 10,
+    flex: 1,
+    resizeMode: "cover",
   },
   actionBar: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    marginVertical: 2,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
   },
   actionButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 10,
+  },
+  actionIcon: {
+    width: 22,
+    height: 22,
+    tintColor: "#555555",
+    marginRight: 5,
   },
   actionButtonText: {
     fontSize: 14,
-    color: "#3AAAD2",
-    marginLeft: 5,
+    color: "#555555",
   },
-  actionIcon: {
-    width: 16,
-    height: 16,
-  },
-  iconSmall: {
-    width: 20,
-    height: 20,
-    marginRight: 10,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 5,
-  },
-  postHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  userInfo: {
-    flexDirection: "column",
-    justifyContent: "center",
-  },
-
   fab: {
     position: "absolute",
     bottom: 20,
     right: 20,
-    backgroundColor: "#3AAAD2",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    backgroundColor: "#FF5722",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5, // Android用
+    elevation: 5,
   },
   fabText: {
-    fontSize: 30,
+    fontSize: 26,
     color: "#FFFFFF",
     fontWeight: "bold",
   },

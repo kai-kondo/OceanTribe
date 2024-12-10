@@ -12,12 +12,12 @@ import EventScreen from "../screens/EventScreen";
 import EventDetailScreen from "../screens/EventDetailScreen";
 import EventCreateScreen from "../screens/EventCreateScreen"; // パスを確認・修正
 import NotificationScreen from "../screens/NotificationScreen";
-import NewsScreen from "../screens/NewsScreen";
+import CommunityScreen from "../screens/CommunityScreen";
 import MessagesScreen from "../screens/MessagesScreen";
 import CreatePostScreen from "../screens/CreatePostScreen"; // ファイルパスに応じて修正
 import ProfileCreateScreen from "../screens/ProfileCreateScreen";
-
-
+import CommunityDetailScreen from "../screens/CommunityDetailScreen";
+import CommunityCreateScreen from "../screens/CommunityCreateScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -37,8 +37,8 @@ const BottomTabs = () => {
             case "イベント":
               iconName = require("../assets/icons/event.png");
               break;
-            case "ニュース":
-              iconName = require("../assets/icons/news.png");
+            case "コミュニティ":
+              iconName = require("../assets/icons/Community.png");
               break;
             case "通知":
               iconName = require("../assets/icons/notification.png");
@@ -53,13 +53,12 @@ const BottomTabs = () => {
     >
       <Tab.Screen name="ホーム" component={HomeScreen} />
       <Tab.Screen name="イベント" component={EventScreen} />
-      <Tab.Screen name="ニュース" component={NewsScreen} />
+      <Tab.Screen name="コミュニティ" component={CommunityScreen} />
       <Tab.Screen name="通知" component={NotificationScreen} />
       <Tab.Screen name="メッセージ" component={MessagesScreen} />
     </Tab.Navigator>
   );
 };
-
 
 const AppNavigator = () => {
   return (
@@ -74,6 +73,16 @@ const AppNavigator = () => {
             component={BottomTabs}
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="CommunityScreen" component={CommunityScreen} />
+          <Stack.Screen
+            name="CommunityDetail"
+            component={CommunityDetailScreen}
+          />
+          <Stack.Screen
+            name="CommunityCreate"
+            component={CommunityCreateScreen}
+          />
+
           <Stack.Screen
             name="CreatePost"
             component={CreatePostScreen}
