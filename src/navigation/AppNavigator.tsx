@@ -11,13 +11,16 @@ import ProfileScreen from "../screens/ProfileScreen";
 import EventScreen from "../screens/EventScreen";
 import EventDetailScreen from "../screens/EventDetailScreen";
 import EventCreateScreen from "../screens/EventCreateScreen"; // パスを確認・修正
-import NotificationScreen from "../screens/NotificationScreen";
+import NotificationScreen from "../screens/SportSharingScreen";
 import CommunityScreen from "../screens/CommunityScreen";
 import MessagesScreen from "../screens/MessagesScreen";
 import CreatePostScreen from "../screens/CreatePostScreen"; // ファイルパスに応じて修正
 import ProfileCreateScreen from "../screens/ProfileCreateScreen";
 import CommunityDetailScreen from "../screens/CommunityDetailScreen";
 import CommunityCreateScreen from "../screens/CommunityCreateScreen";
+import SpotSharingScreen from "../screens/SportSharingScreen";
+import SpotDetailScreen from '../screens/SpotDetailScreen';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -40,8 +43,8 @@ const BottomTabs = () => {
             case "コミュニティ":
               iconName = require("../assets/icons/Community.png");
               break;
-            case "通知":
-              iconName = require("../assets/icons/notification.png");
+            case "スポット":
+              iconName = require("../assets/icons/sport.png");
               break;
             case "メッセージ":
               iconName = require("../assets/icons/chat2.png");
@@ -54,7 +57,7 @@ const BottomTabs = () => {
       <Tab.Screen name="ホーム" component={HomeScreen} />
       <Tab.Screen name="イベント" component={EventScreen} />
       <Tab.Screen name="コミュニティ" component={CommunityScreen} />
-      <Tab.Screen name="通知" component={NotificationScreen} />
+      <Tab.Screen name="スポット" component={ SpotSharingScreen} />
       <Tab.Screen name="メッセージ" component={MessagesScreen} />
     </Tab.Navigator>
   );
@@ -97,6 +100,8 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="ProfileCreate" component={ProfileCreateScreen} />
+          <Stack.Screen name="Spots" component={SpotSharingScreen} />
+          <Stack.Screen name="SpotDetail" component={SpotDetailScreen} />
         </Stack.Navigator>
       </SafeAreaView>
     </NavigationContainer>
