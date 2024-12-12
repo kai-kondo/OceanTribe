@@ -19,6 +19,8 @@ export type RootStackParamList = {
   Main: {
     screen: "Home" | "Event" | "News" | "Notification" | "Messages";
   };
+  Admin: undefined; // 管理者画面
+  AddSpot: undefined;
 };
 
 type Props = {
@@ -82,6 +84,14 @@ const LoginScreen = ({ navigation }: Props) => {
               onPress={() => navigation.navigate("SignUp")}
             >
               <Text style={styles.signupText}>新規登録はこちら</Text>
+            </TouchableOpacity>
+
+            {/* ここに管理者画面へのリンクを追加 */}
+            <TouchableOpacity
+              style={styles.adminLink}
+              onPress={() => navigation.navigate("Admin")}
+            >
+              <Text style={styles.adminText}>管理者はこちら</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -158,6 +168,16 @@ const styles = StyleSheet.create({
   signupText: {
     color: "#ddd",
     fontSize: 14,
+  },
+
+  adminLink: {
+    alignItems: "center",
+    marginTop: 10,
+  },
+  adminText: {
+    color: "#ffd700",
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });
 

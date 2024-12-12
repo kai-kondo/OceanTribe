@@ -9,6 +9,7 @@ import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
 
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyCdA6kC5YBwyKxIbC48-UZWpKCEUDuVwMg",
   authDomain: "oceantribe-fe515.firebaseapp.com",

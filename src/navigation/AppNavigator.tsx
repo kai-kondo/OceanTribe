@@ -11,15 +11,18 @@ import ProfileScreen from "../screens/ProfileScreen";
 import EventScreen from "../screens/EventScreen";
 import EventDetailScreen from "../screens/EventDetailScreen";
 import EventCreateScreen from "../screens/EventCreateScreen"; // パスを確認・修正
-import NotificationScreen from "../screens/SportSharingScreen";
+import NotificationScreen from "../screens/SpotSharingScreen";
 import CommunityScreen from "../screens/CommunityScreen";
 import MessagesScreen from "../screens/MessagesScreen";
 import CreatePostScreen from "../screens/CreatePostScreen"; // ファイルパスに応じて修正
 import ProfileCreateScreen from "../screens/ProfileCreateScreen";
 import CommunityDetailScreen from "../screens/CommunityDetailScreen";
 import CommunityCreateScreen from "../screens/CommunityCreateScreen";
-import SpotSharingScreen from "../screens/SportSharingScreen";
+import SpotSharingScreen from "../screens/SpotSharingScreen";
 import SpotDetailScreen from '../screens/SpotDetailScreen';
+import AdminScreen from "../screens/AdminScreen";
+
+
 
 
 const Stack = createNativeStackNavigator();
@@ -70,6 +73,7 @@ const AppNavigator = () => {
         <Stack.Navigator>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="SignUp" component={SignUpScreen} />
+          <Stack.Screen name="Admin" component={AdminScreen} />
           {/* MainはTabナビゲーションバーとして統一 */}
           <Stack.Screen
             name="Main"
