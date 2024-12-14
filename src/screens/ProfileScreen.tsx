@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginLeft: 10,
   },
-  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  container: { flex: 1, backgroundColor: "#B3E5FC" },
   profileContainer: {
     padding: 20,
     backgroundColor: "#FFFFFF",

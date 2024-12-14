@@ -1,172 +1,93 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  Dimensions,
-} from "react-native";
-import { Video, ResizeMode } from "expo-av";
-import { useNavigation } from "@react-navigation/native";
-import { getDatabase, ref, get, onValue } from "firebase/database";
-import { getAuth } from "firebase/auth";
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { getAuth, onAuthStateChanged } from 'firebase/auth'; 
 
-const { width } = Dimensions.get("window");
+const auth = getAuth();
 
-type Post = {
-  id: string;
-  userId: string;
-  content: string;
-  media?: string;
-  userData?: User;
-};
-
-type User = {
-  username: string;
-  avatarUrl?: string;
-  boardType?: string;
-  homePoint?: string;
-  mediaUrl?: string;
-};
-
-const HomeScreen = () => {
-  const navigation = useNavigation<any>();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [userData, setUserData] = useState<User | null>(null);
-
-  useEffect(() => {
-    const db = getDatabase();
-    const postsRef = ref(db, "posts");
-    const usersRef = ref(db, "users");
-
-    const fetchPostsAndUsers = async () => {
-      try {
-        const [postsSnapshot, usersSnapshot] = await Promise.all([
-          get(postsRef),
-          get(usersRef),
-        ]);
-
-        const postsData = postsSnapshot.val() || {};
-        const usersData = usersSnapshot.val() || {};
-
-        const combinedData = Object.entries(postsData).map(
-          ([id, post]: [string, any]) => ({
-            id,
-            ...post,
-            userData: usersData[post.userId] || null,
-          })
-        );
-
-        setPosts(combinedData);
-      } catch (error) {
-        console.error("データの取得中にエラーが発生しました:", error);
-      }
-    };
-
-    // リアルタイムリスナーを追加
-    const unsubscribePosts = onValue(ref(db, "posts"), fetchPostsAndUsers);
-    const unsubscribeUsers = onValue(ref(db, "users"), fetchPostsAndUsers);
-
-    return () => {
-      // コンポーネントのアンマウント時にリスナーを削除
-      unsubscribePosts();
-      unsubscribeUsers();
-    };
-  }, []);
-
-  useEffect(() => {
-    const db = getDatabase();
-    const usersRef = ref(db, "users");
-
-    const fetchUserData = async () => {
-      const user = getAuth().currentUser;
-      if (user) {
-        const userSnapshot = await get(ref(db, `users/${user.uid}`));
-        setUserData(userSnapshot.val() || null);
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
-  const renderPostItem = ({ item }: { item: Post }) => {
-    const user = item.userData;
-
-    return (
-      <View style={styles.postCard}>
-        <View style={styles.postHeader}>
-          <Image
-            source={{ uri: user?.mediaUrl || "https://via.placeholder.com/50" }}
-            style={styles.avatar}
-          />
-          <View style={styles.userInfoContainer}>
-            <Text style={styles.userName}>
-              {user?.username || "不明ユーザー"}
-            </Text>
-            <Text style={styles.boardType}>
-              使用ボード: {user?.boardType || "不明"}
-            </Text>
-            <View style={styles.homePointContainer}>
-              <Image
-                source={require("../assets/icons/surfing.png")}
-                style={styles.homePointIcon}
-              />
-              <Text style={styles.homePointText}>
-                ホームポイント: {user?.homePoint || "未設定"}
-              </Text>
-            </View>
-          </View>
-        </View>
-        {item.media && (
-          <View style={styles.mediaContainer}>
-            {item.media.endsWith(".mp4") ? (
-              <Video
-                source={{ uri: item.media }}
-                style={styles.media}
-                useNativeControls
-                resizeMode={ResizeMode.CONTAIN}
-              />
-            ) : (
-              <Image source={{ uri: item.media }} style={styles.media} />
-            )}
-          </View>
-        )}
-
-        <Text style={styles.postContent}>{item.content}</Text>
-        {/* アクションバー */}
-        <View style={styles.actionBar}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Image
-              source={require("../assets/icons/like.png")}
-              style={styles.actionIcon}
-            />
-            <Text style={styles.actionButtonText}>いいね</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionButton}>
-            <Image
-              source={require("../assets/icons/comment.png")}
-              style={styles.actionIcon}
-            />
-            <Text style={styles.actionButtonText}>コメント</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionButton}>
-            <Image
-              source={require("../assets/icons/share.png")}
-              style={styles.actionIcon}
-            />
-            <Text style={styles.actionButtonText}>共有</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+const StarRating = ({ rating }: { rating: number }) => {
+  const stars = [];
+  for (let i = 0; i < 5; i++) {
+    stars.push(
+      <Text key={i} style={i < rating ? styles.filledStar : styles.emptyStar}>
+        {'★'}
+      </Text>
     );
-  };
+  }
+  return <View style={styles.starContainer}>{stars}</View>;
+};
+
+const HomeScreen = ({ navigation }: any) => {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [userData, setUserData] = useState<any>(null); // userData を初期化
+
+  useEffect(() => {
+    const db = getDatabase();
+
+    // "posts"データを取得
+    const postsRef = ref(db, 'posts');
+    onValue(postsRef, (snapshot) => {
+      const data = snapshot.val();
+      const formattedPosts = data ? Object.entries(data).map(([id, post]: [string, any]) => ({ id, ...post })) : [];
+      setPosts(formattedPosts);
+    });
+
+    // "communities"データを取得
+    const communitiesRef = ref(db, 'communities');
+    onValue(communitiesRef, (snapshot) => {
+      const data = snapshot.val();
+      const formattedCommunities = data ? Object.entries(data).map(([id, community]: [string, any]) => ({ id, ...community })) : [];
+      setCommunities(formattedCommunities);
+    });
+
+    // "events"データを取得（イベントの取得処理）
+    const eventsRef = ref(db, 'events');
+    onValue(eventsRef, (snapshot) => {
+      const data = snapshot.val();
+      const formattedEvents = data ? Object.entries(data).map(([id, event]: [string, any]) => ({ id, ...event })) : [];
+      setEvents(formattedEvents);
+    });
+
+    // Firebase Auth のユーザーデータを監視
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // ユーザーがログインしている場合、追加情報を取得
+        const userRef = ref(db, `users/${user.uid}`);
+        onValue(userRef, (snapshot) => {
+          const userDataFromDb = snapshot.val();
+          if (userDataFromDb) {
+            setUserData({ ...user, ...userDataFromDb }); // AuthデータとDBデータを統合
+          }
+        });
+      } else {
+        setUserData(null); // ユーザーがログアウトした場合
+      }
+    });
+    return () => unsubscribe(); // コンポーネントのクリーンアップ時にリスナーを解除
+  }, []);
+
+  const renderPostItem = ({ item }: any) => (
+    <View style={styles.postCard}>
+      {/* 投稿画像 */}
+      <Image source={{ uri: item.mediaUrl }} style={styles.postImage} />
+      
+      {/* 投稿情報 */}
+      <View style={styles.postInfo}>
+        <Text style={styles.postTitle}>{item.surfSpotName}</Text>
+        <Text style={styles.postTime}>
+          {new Date(item.surfDate).toLocaleDateString()} - {item.surfTime}
+        </Text>
+        {item.reviewStars && <StarRating rating={item.reviewStars} />}
+        <Text style={styles.postComment}>{item.reviewComment}</Text>
+      </View>
+    </View>
+  );
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1 }}>
+      {/* HeaderはFlatListの外に配置 */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
@@ -178,40 +99,78 @@ const HomeScreen = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity>
             <Image
-              source={require("../assets/icons/sarch.png")}
+              source={require("../assets/icons/notifi.png")}
               style={styles.searchIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
             {userData?.mediaUrl ? (
-              <Image
-                source={{ uri: userData.mediaUrl }}
-                style={styles.avatar}
-              />
+              <Image source={{ uri: userData.mediaUrl }} style={styles.avatar} />
             ) : (
-              <Image
-                source={require("../assets/icons/notification.png")}
-                style={styles.avatar}
-              />
+              <Image source={require('../assets/icons/notification.png')} style={styles.avatar} />
             )}
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* FlatList本体 */}
       <FlatList
-        data={posts}
-        renderItem={renderPostItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.timeline}
-        showsVerticalScrollIndicator={false}
-      />
+        style={styles.container}
+        data={posts} // 投稿データを渡す
+        keyExtractor={(item, index) => index.toString()}
+        ListHeaderComponent={() => (
+          <>
+            {/* イベントリスト 横スクロール */}
+            <Text style={styles.sectionTitle}>おすすめイベント</Text>
+            <FlatList
+              data={events}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <View style={styles.eventCard}>
+                  <Image source={{ uri: item.mediaUrl }} style={styles.eventImage} />
+                  <Text style={styles.eventTitle}>{item.title}</Text>
+                  <Text style={styles.eventDate}>
+                    {new Date(item.date).toLocaleString('ja-JP', {
+                      timeZone: 'Asia/Tokyo',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('EventDetail', { eventId: item.id })}>
+                    <Text style={styles.detailButton}>詳細を確認</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate("CreatePost")}
-      >
-        <Text style={styles.fabText}>＋</Text>
-      </TouchableOpacity>
+            {/* コミュニティリスト 横スクロール */}
+            <Text style={styles.sectionTitle}>おすすめコミュニティ</Text>
+            <FlatList
+              data={communities}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <View style={styles.communityCard}>
+                  <Image source={{ uri: item.imageUrl }} style={styles.communityImage} />
+                  <Text style={styles.communityTitle}>{item.title}</Text>
+                  <Text style={styles.communityDescription}>{item.description}</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('CommunityDetail', { communityId: item.id })}>
+                    <Text style={styles.communityButton}>コミュニティを見る</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+            <Text style={styles.sectionTitle}>新着投稿</Text>
+          </>
+        )}
+        renderItem={renderPostItem} // 投稿リストをレンダリング
+      />
     </View>
   );
 };
@@ -219,30 +178,32 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5", // 優しい背景色
+    backgroundColor: '#B3E5FC', // 水色系の背景色
+    padding: 15,
   },
   header: {
+    width: '100%',
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    backgroundColor: "#3AAAD2",
+    borderBottomColor: "#4FC3F7", // 水色系のボーダー色
+    backgroundColor: "#4FC3F7", // 水色系
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
   headerIcon: {
-    width: 30,
-    height: 30,
+    width: 35,
+    height: 35,
     resizeMode: "contain",
     marginRight: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 25,
     fontWeight: "bold",
     color: "#FFF",
   },
@@ -253,127 +214,139 @@ const styles = StyleSheet.create({
   searchIcon: {
     width: 24,
     height: 24,
-    tintColor: "#555555",
+    tintColor: "#FFFFFF", // ホワイト
     marginRight: 20,
   },
   avatar: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     borderRadius: 25, // 丸型アバター
-    marginRight: 10, // アバターとテキスト間の余白
+    marginRight: 10,
   },
-  timeline: {
-    paddingBottom: 10,
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginVertical: 15,
+    color: '#0288D1', // 青色（少し濃い水色）
+  },
+  eventCard: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 15,
+    marginRight: 20,
+    width: 250,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  eventImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 12,
+    resizeMode: 'cover',
+  },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0288D1', // 青色
+  },
+  eventDate: {
+    fontSize: 14,
+    color: '#0288D1', // 青色
+    marginVertical: 5,
+  },
+  detailButton: {
+    color: '#4FC3F7', // 水色系
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '600',
   },
   postCard: {
-    marginBottom: 15,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 8,
-    shadowColor: "#000",
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    overflow: "hidden",
+    shadowRadius: 6,
+    overflow: 'hidden',
   },
-  postHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+  postImage: {
+    width: '100%',
+    height: 250,
+    resizeMode: 'cover',
   },
-  userInfo: {
-    marginLeft: 12,
+  postInfo: {
+    padding: 15,
   },
-  userInfoContainer: {
-    flex: 1, // 横幅を占有
+  postTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0288D1', // 青色
   },
-  userName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 4, // 項目間の余白
+  postTime: {
+    fontSize: 12,
+    color: '#0288D1', // 青色
+    marginBottom: 10,
   },
-  boardType: {
+  postComment: {
     fontSize: 14,
-    color: "#7F8C8D",
-    marginBottom: 4,
-  },
-  homePointContainer: {
-    flexDirection: "row", // 横並び
-    alignItems: "center",
-  },
-  homePointIcon: {
-    width: 16,
-    height: 16,
-    resizeMode: "contain",
-    marginRight: 6, // アイコンとテキストの間
-  },
-  homePointText: {
-    fontSize: 14,
-    color: "#3AAAD2",
-  },
-  postContent: {
-    fontSize: 15,
-    color: "#333333",
-    marginVertical: 10,
-    paddingHorizontal: 12,
+    color: '#0288D1', // 青色
     lineHeight: 20,
   },
-  mediaContainer: {
-    width: "100%",
-    aspectRatio: 1, // 正方形を維持
-    backgroundColor: "#F9F9F9",
+  starContainer: {
+    flexDirection: 'row',
+    marginTop: 5,
   },
-  media: {
-    flex: 1,
-    resizeMode: "cover",
+  filledStar: {
+    color: '#FFD700', // ゴールド
+    fontSize: 20,
   },
-  actionBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
+  emptyStar: {
+    color: '#BDC3C7', // グレー
+    fontSize: 20,
   },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
+
+  communityCard: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 15,
+    marginRight: 20,
+    width: 250,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  actionIcon: {
-    width: 22,
-    height: 22,
-    tintColor: "#555555",
-    marginRight: 5,
+  communityImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 12,
+    resizeMode: 'cover',
   },
-  actionButtonText: {
+  communityTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0288D1', // 青色
+  },
+  communityDescription: {
     fontSize: 14,
-    color: "#555555",
+    color: '#0288D1', // 青色
+    marginVertical: 5,
   },
-  fab: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    backgroundColor: "#FF5722",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  fabText: {
-    fontSize: 26,
-    color: "#FFFFFF",
-    fontWeight: "bold",
+  communityButton: {
+    color: '#4FC3F7', // 水色系
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
+
 
 export default HomeScreen;

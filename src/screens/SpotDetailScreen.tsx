@@ -22,7 +22,7 @@ import { getAuth } from "firebase/auth";
 const waveHeights = ["フラット", "スネ〜ヒザ", "ヒザ〜モモ","モモ〜コシ","コシ〜ハラ","ハラ〜ムネ","カタ〜頭","頭オーバー"];
 const waveConditions = ["ツルツル", "ややざわついている", "ザワザワ","グチャグチャ","ガタガタ"];
 const congestionLevels = ["空いている", "普通", "混雑", "激混み"];
-const area = ["北海道・東北", "茨城", "湘南", "千葉北"];
+const area = ['北海道・東北', '茨城', '千葉北', '千葉南','湘南','西湘','伊豆','静岡','伊良湖','伊勢','和歌山','四国','南九州','北九州','日本海','アイランド'];
 
 
 const SpotDetailScreen = ({ navigation }: any) => {
@@ -40,6 +40,23 @@ const SpotDetailScreen = ({ navigation }: any) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentOptions, setCurrentOptions] = useState<string[]>([]);
   const [onSelect, setOnSelect] = useState<(value: string) => void>(() => { });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+
+  const handleDateChange = (event: any, selectedDate: Date | undefined) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setSurfDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setSurfTime(selectedTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }));
+    }
+  };
 
   // ⭐レビューの状態を表示する関数をコンポーネントスコープ内に移動
   const renderStars = () => {
@@ -196,18 +213,45 @@ const SpotDetailScreen = ({ navigation }: any) => {
         </View>
 
         <Text style={styles.sectionTitle}>サーフィンした日時</Text>
-        <TextInput
-          placeholder="日付（例: 2024-12-12）"
-          value={surfDate}
-          onChangeText={setSurfDate}
-          style={styles.input}
+          {/* 日付選択ボタン */}
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={styles.inputText}>
+          {surfDate || '日付を選択'} {/* 選択された日付 */}
+        </Text>
+      </TouchableOpacity>
+
+      {/* 時間選択ボタン */}
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setShowTimePicker(true)}
+      >
+        <Text style={styles.inputText}>
+          {surfTime || '時間を選択'} {/* 選択された時間 */}
+        </Text>
+      </TouchableOpacity>
+
+      {/* 日付ピッカー */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={surfDate ? new Date(surfDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
         />
-        <TextInput
-          placeholder="時間（例: 14:00）"
-          value={surfTime}
-          onChangeText={setSurfTime}
-          style={styles.input}
+      )}
+
+      {/* 時間ピッカー */}
+      {showTimePicker && (
+        <DateTimePicker
+          value={surfTime ? new Date(`1970-01-01T${surfTime}`) : new Date()}
+          mode="time"
+          display="default"
+          onChange={handleTimeChange}
         />
+      )}
 
         {/* レビュー星選択 */}
         <Text style={styles.sectionTitle}>今日のレビュー（星）</Text>
@@ -249,26 +293,28 @@ const SpotDetailScreen = ({ navigation }: any) => {
           <TouchableWithoutFeedback onPress={closeModal}>
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
-                {currentOptions.map((option, index) => (
+                <ScrollView>
+                  {currentOptions.map((option, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.modalButton}
+                      onPress={() => {
+                        onSelect(option);
+                        closeModal();
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>{option}</Text>
+                    </TouchableOpacity>
+                  ))}
                   <TouchableOpacity
-                    key={index}
+                    onPress={closeModal}
                     style={styles.modalButton}
-                    onPress={() => {
-                      onSelect(option);
-                      closeModal();
-                    }}
                   >
-                    <Text style={styles.modalButtonText}>{option}</Text>
+                    <Text style={{ color: "red", textAlign: "center" }}>
+                      キャンセル
+                    </Text>
                   </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  onPress={closeModal}
-                  style={styles.modalButton}
-                >
-                  <Text style={{ color: "red", textAlign: "center" }}>
-                    キャンセル
-                  </Text>
-                </TouchableOpacity>
+                </ScrollView>
               </View>
             </View>
           </TouchableWithoutFeedback>
@@ -350,6 +396,7 @@ const styles = StyleSheet.create({
     padding: 25,
     borderRadius: 12,
     width: "90%",
+    maxHeight: "80%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
@@ -390,6 +437,10 @@ const styles = StyleSheet.create({
   flexItem: {
     flex: 1,
     marginHorizontal: 5,
+  },
+  inputText: {
+    fontSize: 16,
+    color: '#333',
   },
 });
 

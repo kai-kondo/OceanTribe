@@ -34,7 +34,6 @@ const EventScreen = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const auth = getAuth();
 
-
   useEffect(() => {
     const db = getDatabase();
     const eventsRef = ref(db, "events");
@@ -80,7 +79,6 @@ const EventScreen = () => {
         return;
       }
 
-      // 参加者リストを更新してFirebaseに保存
       const updatedAttendees = [...currentAttendees, userId];
 
       await update(eventRef, {
@@ -88,8 +86,6 @@ const EventScreen = () => {
       });
 
       alert("参加登録しました！");
-
-      // リストをリフレッシュして最新参加者数を反映
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
           event.id === eventId
@@ -102,7 +98,6 @@ const EventScreen = () => {
       alert("エラーが発生しました。再試行してください。");
     }
   };
-
 
   const renderEventItem = ({ item }: { item: Event }) => (
     <TouchableOpacity
@@ -121,7 +116,6 @@ const EventScreen = () => {
           👥 参加者数: {item.attendees ? item.attendees.length : 0}
         </Text>
 
-        {/* タグ表示 */}
         {item.tags && item.tags.length > 0 && (
           <View style={styles.tagsContainer}>
             {item.tags.map((tag, index) => (
@@ -132,7 +126,6 @@ const EventScreen = () => {
           </View>
         )}
 
-        {/* 参加ボタン */}
         <TouchableOpacity
           style={styles.joinButton}
           onPress={() => handleJoin(item.id)}
@@ -170,7 +163,7 @@ const EventScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  container: { flex: 1, backgroundColor: "#B3E5FC" }, // 水色の背景
 
   header: {
     flexDirection: "row",
@@ -178,14 +171,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: "#3AAAD2",
+    backgroundColor: "#4FC3F7", // 水色
   },
   logo: { width: 30, height: 30, resizeMode: "contain" },
   headerTitle: { color: "#fff", fontSize: 24, fontWeight: "bold" },
   fab: {
     width: 40,
     height: 40,
-    backgroundColor: "#FF5733",
+    backgroundColor: "#FF5733", // オレンジ色
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 20,
@@ -209,10 +202,10 @@ const styles = StyleSheet.create({
   cardContent: { paddingVertical: 10 },
   title: { fontSize: 22, fontWeight: "bold", color: "#333" },
   date: { fontSize: 14, color: "#777" },
-  attendees: { fontSize: 16, color: "#007BFF", marginTop: 5 },
+  attendees: { fontSize: 16, color: "#0288D1", marginTop: 5 }, // 青色
   joinButton: {
     marginTop: 15,
-    backgroundColor: "#007BFF",
+    backgroundColor: "#4FC3F7", // 水色
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
@@ -224,7 +217,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   tag: {
-    backgroundColor: "#3AAAD2",
+    backgroundColor: "#0288D1", // 青色
     color: "#fff",
     padding: 5,
     borderRadius: 5,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ScrollView, 
+  TextInput,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { useNavigation } from "@react-navigation/native";
@@ -21,18 +23,18 @@ type Post = {
   content: string;
   media?: string;
   userData?: User;
-  comment?: string; // 追加
-  congestion?: string; // 追加
-  createdAt?: string; // 追加
-  reviewStars?: number; // 追加
-  selectedArea?: string; // 追加
-  surfDate?: string; // 追加
-  surfSpotName?: string; // 追加
-  surfTime?: string; // 追加
-  waveCondition?: string; // 追加
-  waveHeight?: string; // 追加
-  mediaUrl?: string; // 追加
-  reviewCount?: string
+  comment?: string;
+  congestion?: string;
+  createdAt?: string;
+  reviewStars?: number;
+  selectedArea?: string;
+  surfDate?: string;
+  surfSpotName?: string;
+  surfTime?: string;
+  waveCondition?: string;
+  waveHeight?: string;
+  mediaUrl?: string;
+  reviewCount?: string;
 };
 
 type User = {
@@ -47,44 +49,72 @@ const SpotSharingScreen = () => {
   const navigation = useNavigation<any>();
   const [posts, setPosts] = useState<Post[]>([]);
   const [userData, setUserData] = useState<User | null>(null);
+  const [selectedArea, setSelectedArea] = useState<string>('すべて');
+  const scrollViewRef = useRef<ScrollView | null>(null); // ScrollViewの参照を保持
+  const [searchText, setSearchText] = useState('');
+
+  // エリアの選択肢
+  const areas = ['すべて', '北海道・東北', '茨城', '千葉北', '千葉南','湘南','西湘','伊豆','静岡','伊良湖','伊勢','和歌山','四国','南九州','北九州','日本海','アイランド'];
+
+  const handleAreaSelect = (area: string) => {
+    setSelectedArea(area); // 選択されたエリアを状態にセット
+  };
+
+  // フィルタリングロジック
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = post.surfSpotName?.toLowerCase().includes(searchText.toLowerCase()) || 
+                          post.content?.toLowerCase().includes(searchText.toLowerCase());
+    const matchesArea = selectedArea === 'すべて' || post.selectedArea === selectedArea;
+    return matchesSearch && matchesArea;
+  });
 
   useEffect(() => {
     const db = getDatabase();
     const postsRef = ref(db, "posts");
     const usersRef = ref(db, "users");
 
-    const fetchPostsAndUsers = async () => {
+    // リアルタイムリスナーを追加
+    const fetchPostsAndUsers = async (snapshot: any) => {
       try {
-        const [postsSnapshot, usersSnapshot] = await Promise.all([
-          get(postsRef),
-          get(usersRef),
-        ]);
-
-        const postsData = postsSnapshot.val() || {};
+        const postsData = snapshot.val() || {};
+        const usersSnapshot = await get(usersRef);
         const usersData = usersSnapshot.val() || {};
 
-        const combinedData = Object.entries(postsData).map(
-          ([id, post]: [string, any]) => ({
+        const combinedData = Object.entries(postsData).map(([id, post]: [string, any]) => {
+          // ユーザーデータを取得
+          const userData = usersData[post.userId] || {};
+          
+          // 投稿データを整形
+          return {
             id,
             ...post,
-            userData: usersData[post.userId] || null,
-          })
-        );
+            userData: {
+              username: userData.username || '不明ユーザー',
+              boardType: userData.boardType || '不明',
+              homePoint: userData.homePoint || '未設定',
+              mediaUrl: userData.mediaUrl || null,
+              socialLinks: userData.socialLinks || {}
+            },
+            mediaUrl: post.mediaUrl || null,
+            comment: post.comment || null
+          };
+        });
 
-        setPosts(combinedData);
+        // 日付順にソート
+        const sortedData = combinedData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        
+        console.log('Sorted Combined Data:', sortedData); // デバッグ用
+        setPosts(sortedData);
       } catch (error) {
-        console.error("データの取得中にエラーが発生しました:", error);
+        console.error('データの取得中にエラーが発生しました:', error);
       }
     };
 
-    // リアルタイムリスナーを追加
-    const unsubscribePosts = onValue(ref(db, "posts"), fetchPostsAndUsers);
-    const unsubscribeUsers = onValue(ref(db, "users"), fetchPostsAndUsers);
+    // postsRefに対してリスナーを設定
+    const unsubscribe = onValue(postsRef, fetchPostsAndUsers);
 
     return () => {
-      // コンポーネントのアンマウント時にリスナーを削除
-      unsubscribePosts();
-      unsubscribeUsers();
+      unsubscribe();
     };
   }, []);
 
@@ -135,87 +165,91 @@ const SpotSharingScreen = () => {
         <View style={styles.postContentContainer}>
 
         </View>
+
         {/* コンテンツ */}
-        <Text style={styles.postContent}>{item.content}</Text>
+        <View style={styles.infoGrid}>
+          {/* 左側 */}
+          <View style={styles.infoColumn}>
 
-        {/* 詳細情報 */}
-        {item.comment && (
-          <Text style={styles.postDetails}>コメント: {item.comment}</Text>
-        )}
+            {/* サーフポイント名 */}
+            {item.surfSpotName && (
+              <View style={styles.infoRow}>
+                <Image
+                  source={require("../assets/icons/spot.png")}
+                  style={styles.infoIcon}
+                />
+                <Text style={styles.postDetails}>{item.surfSpotName}</Text>
+              </View>
+            )}
+            {/* 混雑度 */}
+            {item.congestion && (
+              <View style={styles.infoRow}>
+                <Image
+                  source={require("../assets/icons/congestion.png")}
+                  style={styles.infoIcon}
+                />
+                <Text style={styles.postDetails}>{item.congestion}</Text>
+              </View>
+            )}
+            {/* 評価 */}
+            {item.reviewStars && (
+              <View style={styles.infoRow}>
+                <Text style={styles.postDetails}>
+                  おすすめ：⭐{item.reviewStars}
+                </Text>
+              </View>
+            )}
+          </View>
+            {/* 右側 */}
+          <View style={styles.infoColumn}>
+            {/* 日時 */}
+            {item.surfDate && item.surfTime && (
+              <View style={styles.infoRow}>
+                <Image
+                  source={require("../assets/icons/clock.png")}
+                  style={styles.infoIcon}
+                />
+                <Text style={styles.postDetails}>
+                  {item.surfDate} {item.surfTime}
+                </Text>
+              </View>
+            )}
+            {/* 波のコンディション */}
+            {item.waveCondition && (
+              <View style={styles.infoRow}>
+                <Image
+                  source={require("../assets/icons/wave.png")}
+                  style={styles.infoIcon}
+                />
+                <Text style={styles.postDetails}>{item.waveCondition}</Text>
+              </View>
+            )}
+            {/* 波のサイズ */}
+            {item.waveHeight && (
+              <View style={styles.infoRow}>
+                <Image
+                  source={require("../assets/icons/height.png")}
+                  style={styles.infoIcon}
+                />
+                <Text style={styles.postDetails}>{item.waveHeight}</Text>
+              </View>
+            )}
+            
+          </View>
+        </View>
 
-        {item.congestion && (
-          <View style={styles.infoRow}>
-            <Image
-              source={require("../assets/icons/congestion.png")}
-              style={styles.infoIcon}
-            />
-            <Text style={styles.postDetails}>混雑度: {item.congestion}</Text>
-          </View>
-        )}
-        {item.createdAt && (
-          <View style={styles.infoRow}>
-            <Image
-              source={require("../assets/icons/pin.png")}
-              style={styles.infoIcon}
-            />
-            <Text style={styles.postDetails}>作成日時: {item.createdAt}</Text>
-          </View>
-        )}
-        {item.surfSpotName && (
-          <View style={styles.infoRow}>
-            <Image
-              source={require("../assets/icons/spot.png")}
-              style={styles.infoIcon}
-            />
-            <Text style={styles.postDetails}>
-              スポット: {item.surfSpotName}
-            </Text>
-          </View>
-        )}
-        {item.surfDate && item.surfTime && (
-          <View style={styles.infoRow}>
-            <Image
-              source={require("../assets/icons/clock.png")}
-              style={styles.infoIcon}
-            />
-            <Text style={styles.postDetails}>
-              日時: {item.surfDate} {item.surfTime}
-            </Text>
-          </View>
-        )}
-        {item.waveCondition && (
-          <View style={styles.infoRow}>
-            <Image
-              source={require("../assets/icons/wave.png")}
-              style={styles.infoIcon}
-            />
-            <Text style={styles.postDetails}>
-              波の状態: {item.waveCondition}
-            </Text>
-          </View>
-        )}
-        {item.waveHeight && (
-          <View style={styles.infoRow}>
-            <Image
-              source={require("../assets/icons/height.png")}
-              style={styles.infoIcon}
-            />
-            <Text style={styles.postDetails}>波の高さ: {item.waveHeight}</Text>
-          </View>
-        )}
-        {item.reviewStars && (
-          <View style={styles.infoRow}>
-            <Text style={styles.postDetails}>
-              評価平均: {item.reviewStars}⭐（レビュー数: {item.reviewCount}件）
-            </Text>
-          </View>
-        )}
-
-        {/* メディア */}
+       {/* 投稿画像 */}
         {item.mediaUrl && (
           <View style={styles.mediaContainer}>
             <Image source={{ uri: item.mediaUrl }} style={styles.media} />
           </View>
+        )}
+
+        {/* コメント */}
+        {item.comment && (
+          <Text style={[styles.postDetails, { fontSize: 16, marginTop: 10 }]}>
+            {item.comment}
+          </Text>
         )}
 
         {/* アクションバー */}
@@ -246,10 +280,92 @@ const SpotSharingScreen = () => {
     );
   };
 
+  // const areaButtons = areas.map((area) => (
+  //   <TouchableOpacity
+  //     key={area}
+  //     style={[
+  //       styles.areaButton,
+  //       selectedArea === area && styles.selectedAreaButton,
+  //     ]}
+  //     onPress={() => handleAreaSelect(area)}
+  //   >
+  //     <Text style={styles.areaButtonText}>{area}</Text>
+  //   </TouchableOpacity>
+  // ));
+
+   // エリアボタンを2行に均等に分割
+   const getAreasForRows = () => {
+    const middleIndex = Math.ceil(areas.length / 2);
+    return {
+      firstRow: areas.slice(0, middleIndex),
+      secondRow: areas.slice(middleIndex)
+    };
+  };
+
+  // エリアボタンを2行で表示するコンポーネント
+  const AreaSelector = () => {
+    const { firstRow, secondRow } = getAreasForRows();
+
+    return (
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.areaButtonContainer}
+        style={styles.areaButtonScrollView}
+      >
+        <View style={{width: width * 2}}>
+          {/* 1行目 */}
+          <View style={styles.areaButtonRow}>
+            {firstRow.map((area) => (
+              <TouchableOpacity
+                key={area}
+                style={[
+                  styles.areaButton,
+                  selectedArea === area && styles.selectedAreaButton,
+                ]}
+                onPress={() => handleAreaSelect(area)}
+              >
+                <Text style={styles.areaButtonText}>{area}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          {/* 2行目 */}
+          <View style={[styles.areaButtonRow, { marginBottom: 30 }]}>
+            {secondRow.map((area) => (
+              <TouchableOpacity
+                key={area}
+                style={[
+                  styles.areaButton,
+                  selectedArea === area && styles.selectedAreaButton,
+                ]}
+                onPress={() => handleAreaSelect(area)}
+              >
+                <Text style={styles.areaButtonText}>{area}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    );
+  };
+
   return (
     <View style={styles.container}>
+      <View style={styles.searchContainer}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="サーフスポット名を検索"
+        value={searchText}
+        onChangeText={setSearchText}
+      />
+    </View>
+    
+      <AreaSelector />
+
+      
       <FlatList
-        data={posts}
+        data={filteredPosts}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.timeline}
@@ -267,229 +383,222 @@ const SpotSharingScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // 全体のコンテナ
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5", // 優しい背景色
+    backgroundColor: "#B3E5FC", // 白に近い淡いグレー
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    backgroundColor: "#3AAAD2",
+
+  // 投稿カード関連
+  postCard: {
+    backgroundColor: "#FFFFFF",
+    marginVertical: 12,
+    marginHorizontal: 0,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: "hidden",
+    padding: 0, // カード内の余白を削減
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerIcon: {
-    width: 30,
-    height: 30,
-    resizeMode: "contain",
-    marginRight: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#FFF",
-  },
-  headerRight: {
+  postHeader: {
     flexDirection: "row",
     alignItems: "center",
+    padding: 10, // 余白を追加
+    marginBottom: 10,
+    borderBottomWidth: 1, // 下部に区切り線の幅を設定
+    borderBottomColor: "#EEE", // 区切り線の色を薄いグレーに設定
   },
-  searchIcon: {
-    width: 24,
-    height: 24,
-    tintColor: "#555555",
-    marginRight: 20,
+  postContentContainer: {
+    marginVertical: 10,
   },
+  postContent: {
+    fontSize: 16,
+    color: "#444",
+    lineHeight: 22,
+  },
+  postDetails: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+
+  // ユーザー情報関連
   avatar: {
     width: 50,
     height: 50,
-    borderRadius: 25, // 丸型アバター
-    marginRight: 10, // アバターとテキスト間の余白
-  },
-  timeline: {
-    paddingBottom: 10,
-  },
-  userInfo: {
-    marginLeft: 12,
+    borderRadius: 20,
+    marginRight: 12,
   },
   userInfoContainer: {
-    flex: 1, // 横幅を占有
+    flex: 1,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 4, // 項目間の余白
+    fontSize: 18,
+    fontWeight: "600", // 太字
+    color: "#333",
   },
   boardType: {
     fontSize: 14,
-    color: "#7F8C8D",
-    marginBottom: 4,
+    color: "#888", // ソフトな色調
+    marginTop: 2,
   },
+
+  // ホームポイント情報関連
   homePointContainer: {
-    flexDirection: "row", // 横並び
+    flexDirection: "row",
     alignItems: "center",
+    marginTop: 4,
   },
   homePointIcon: {
     width: 16,
     height: 16,
     resizeMode: "contain",
-    marginRight: 6, // アイコンとテキストの間
+    marginRight: 4,
   },
   homePointText: {
     fontSize: 14,
-    color: "#3AAAD2",
+    color: "#3AAAD2", // アクセントカラー
   },
+
+  // メディア関連
   mediaContainer: {
-    width: "100%",
-    aspectRatio: 1, // 正方形を維持
-    backgroundColor: "#F9F9F9",
+    width: "100%", // 画面幅全体に表示
+    backgroundColor: "#EFEFEF",
+    borderRadius: 8,
+    overflow: "hidden",
+    marginVertical: 15, // 上下の余白を調整
   },
   media: {
-    flex: 1,
-    resizeMode: "cover",
+    width: "100%", // 横幅いっぱいに表示
+    aspectRatio: 1, // 正方形のアスペクト比（インスタグラム風）
+    resizeMode: "cover", // 画像をトリミングして全体を埋める
   },
+
+  // アクションバー関連
+  actionBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    marginTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    paddingTop: 10,
+    paddingBottom: 20, 
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 6,
+    tintColor: "#666",
+  },
+  actionButtonText: {
+    fontSize: 12,
+    color: "#666",
+  },
+
+  // タイムライン関連
+  timeline: {
+    paddingHorizontal: 10,
+    paddingVertical: 15,
+  },
+
+  // 情報グリッド関連
+  infoGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+  },
+  infoColumn: {
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+  infoIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 5,
+  },
+
+  // FAB関連
   fab: {
     position: "absolute",
     bottom: 20,
     right: 20,
-    backgroundColor: "#FF5722",
+    backgroundColor: "#FF6F61", // 明るいオレンジ
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 6,
   },
   fabText: {
-    fontSize: 26,
+    fontSize: 28,
     color: "#FFFFFF",
     fontWeight: "bold",
   },
-  reviewContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+
+  areaButtonScrollView: {
+    maxHeight: 110, // 2行分の高さを確保
+  },
+  areaButtonContainer: {
+    paddingHorizontal: 0,
+    paddingVertical: 10,
+  },
+  areaButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start', // 左寄せに変更
+    flexWrap: 'wrap', // 折り返しを許可
+    marginBottom: 3, // 行間のマージン
+    paddingHorizontal: 10, // ボタン全体に少し余白を追加
+  },
+  areaButton: {
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    marginVertical: 8,
+    margin: 4,
+    borderRadius: 16,
+    backgroundColor: "#E0E0E0",
   },
-
-  reviewStar: {
-    width: 24,
-    height: 24,
-    resizeMode: "contain",
+  selectedAreaButton: {
+    backgroundColor: "#FF6F61",
   },
-
-  reviewCount: {
-    fontSize: 14,
-    color: "#555",
-    paddingLeft: 8,
-    alignSelf: "center",
-  },
-
-  postDetails: {
-    fontSize: 15,
+  areaButtonText: {
+    fontSize: 12,
     color: "#333",
-    paddingHorizontal: 12,
-    paddingVertical: 2,
   },
 
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 4,
+  // 検索窓関連
+  searchContainer: {
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    marginBottom: 10, // タブと検索窓の間にスペースを追加
   },
-
-  infoIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
-    resizeMode: "contain",
-  },
-
-  actionBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-  },
-
-  actionButton: {
-    alignItems: "center",
-    padding: 10,
-  },
-
-  actionIcon: {
-    width: 24,
-    height: 24,
-    tintColor: "#555",
-  },
-
-  actionButtonText: {
-    fontSize: 14,
-    color: "#555",
-  },
-
-  postCard: {
-    backgroundColor: "#FFFFFF",
-    marginVertical: 10,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
-    overflow: "hidden",
-  },
-
-  postContent: {
-    fontSize: 16,
-    color: "#444",
-    paddingHorizontal: 12,
-    lineHeight: 22,
-  },
-
-  postHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-
-  postContentContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-
-  postMedia: {
-    width: 80,
-    height: 80,
+  searchInput: {
+    backgroundColor: "#fff",
     borderRadius: 8,
-    marginRight: 10,
-    resizeMode: "cover",
-  },
-
-  postContentText: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
     fontSize: 16,
-    color: "#333",
-    lineHeight: 20,
-    flex: 1, // テキストがスペースを最大限に占有
   },
 });
+
+
 
 export default SpotSharingScreen;

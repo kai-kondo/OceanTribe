@@ -107,17 +107,6 @@ const CommunityDetailScreen = ({ route }: any) => {
             <Text style={styles.actionButtonText}>返信</Text>
           </TouchableOpacity>
         </View>
-
-        {/* 返信内容 */}
-        {/* {item.replies.length > 0 && (
-          <View style={styles.repliesContainer}>
-            {item.replies.map((reply, replyIndex) => (
-              <Text key={replyIndex} style={styles.replyContent}>
-                ・{reply}
-              </Text>
-            ))}
-          </View>
-        )} */}
       </View>
     );
   };
@@ -164,7 +153,7 @@ const CommunityDetailScreen = ({ route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#B3E5FC",  // メインカラーをライトブルーに
   },
   scrollViewContainer: {
     flex: 1,
@@ -179,7 +168,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "700",
     marginBottom: 12,
-    color: "#333",
+    color: "#333",  // ヘッダーの文字色
     textAlign: "center",
   },
   image: {
@@ -191,13 +180,13 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
-    color: "#555",
+    color: "#555",  // 説明文の色
     marginBottom: 20,
     lineHeight: 22,
     textAlign: "center",
   },
   commentContainer: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#FFFFFF",  // コメントカード背景
     padding: 15,
     marginBottom: 15,
     borderRadius: 10,
@@ -224,16 +213,16 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: "#333",  // ユーザー名の色
   },
   homePoint: {
     fontSize: 14,
-    color: "#777",
+    color: "#777",  // ホームポイントの色
     marginTop: 4,
   },
   commentContent: {
     fontSize: 18,
-    color: "#444",
+    color: "#444",  // コメント内容の色
     marginTop: 8,
   },
   commentActions: {
@@ -248,15 +237,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 16,
-    color: "#007AFF",
-  },
-  repliesContainer: {
-    marginTop: 10,
-    paddingLeft: 15,
-  },
-  replyContent: {
-    fontSize: 14,
-    color: "#555",
+    color: "#007AFF",  // いいね・返信ボタンの色
   },
   inputContainer: {
     flexDirection: "row",
@@ -273,13 +254,13 @@ const styles = StyleSheet.create({
     paddingRight: 15,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#ccc",  // 入力ボックスの枠線
     backgroundColor: "#f8f8f8",
     fontSize: 16,
     marginRight: 10,
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007AFF",  // 送信ボタンの背景色
     paddingVertical: 15,
     paddingHorizontal: 25,
     borderRadius: 30,
