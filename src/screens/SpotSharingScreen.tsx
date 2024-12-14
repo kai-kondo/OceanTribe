@@ -164,7 +164,20 @@ const SpotSharingScreen = () => {
         </View>
         <View style={styles.postContentContainer}>
 
-        </View>
+
+       {/* 投稿画像 */}
+        {item.mediaUrl && (
+          <View style={styles.mediaContainer}>
+            <Image source={{ uri: item.mediaUrl }} style={styles.media} />
+          </View>
+        )}
+
+        {/* コメント */}
+        {item.comment && (
+          <Text style={[styles.postDetails, { fontSize: 16, marginTop: 10 }]}>
+            {item.comment}
+          </Text>
+        )}
 
         {/* コンテンツ */}
         <View style={styles.infoGrid}>
@@ -238,20 +251,6 @@ const SpotSharingScreen = () => {
           </View>
         </View>
 
-       {/* 投稿画像 */}
-        {item.mediaUrl && (
-          <View style={styles.mediaContainer}>
-            <Image source={{ uri: item.mediaUrl }} style={styles.media} />
-          </View>
-        )}
-
-        {/* コメント */}
-        {item.comment && (
-          <Text style={[styles.postDetails, { fontSize: 16, marginTop: 10 }]}>
-            {item.comment}
-          </Text>
-        )}
-
         {/* アクションバー */}
         <View style={styles.actionBar}>
           <TouchableOpacity style={styles.actionButton}>
@@ -277,21 +276,9 @@ const SpotSharingScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+      </View>
     );
   };
-
-  // const areaButtons = areas.map((area) => (
-  //   <TouchableOpacity
-  //     key={area}
-  //     style={[
-  //       styles.areaButton,
-  //       selectedArea === area && styles.selectedAreaButton,
-  //     ]}
-  //     onPress={() => handleAreaSelect(area)}
-  //   >
-  //     <Text style={styles.areaButtonText}>{area}</Text>
-  //   </TouchableOpacity>
-  // ));
 
    // エリアボタンを2行に均等に分割
    const getAreasForRows = () => {
@@ -407,12 +394,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 10, // 余白を追加
-    marginBottom: 10,
-    borderBottomWidth: 1, // 下部に区切り線の幅を設定
-    borderBottomColor: "#EEE", // 区切り線の色を薄いグレーに設定
+    marginBottom: 0,
   },
   postContentContainer: {
-    marginVertical: 10,
+    marginVertical: 0,
   },
   postContent: {
     fontSize: 16,

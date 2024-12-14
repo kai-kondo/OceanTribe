@@ -91,7 +91,7 @@ const HomeScreen = ({ navigation }: any) => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={require("../assets/icons/iconmain3.png")}
+            source={require("../assets/icons/OceanTribeLogo.png")}
             style={styles.headerIcon}
           />
           <Text style={styles.headerTitle}>OCEANTRIBE</Text>

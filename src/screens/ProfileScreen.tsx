@@ -1,28 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Image,
-  TouchableOpacity,
   FlatList,
-  Linking,
+  TouchableOpacity,
+  Image,
 } from "react-native";
 import { getAuth } from "firebase/auth";
-import { getDatabase, ref as dbRef, get, onValue } from "firebase/database";
-
-const SNS_ICONS: { [key: string]: any } = {
-  instagram: require("../assets/icons/Instagram_Glyph_Gradient.png"),
-  twitter: require("../assets/icons/logo-black.png"),
-  facebook: require("../assets/icons/Facebook_Logo_Primary.png"),
-};
-
-type Post = {
-  id: string;
-  userId: string;
-  content: string;
-  media?: string;
-};
+import { getDatabase, ref as dbRef, query, orderByChild, get } from "firebase/database";
 
 const ProfileScreen = () => {
   const currentUser = getAuth().currentUser;
@@ -31,226 +17,214 @@ const ProfileScreen = () => {
     username: "",
     homePoint: "",
     boardType: "",
-    mediaUrl: "",
-    socialLinks: {
-      instagram: "",
-      twitter: "",
-      facebook: "",
-    },
     bio: "",
+    mediaUrl: "", // プロフィール画像のURL
   });
 
-  const [userPosts, setUserPosts] = useState<Post[]>([]);
-  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
-  const [selectedTab, setSelectedTab] = useState<"myPosts" | "likedPosts">(
-    "myPosts"
-  );
+  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [userEvents, setUserEvents] = useState<any[]>([]);
+  const [userCommunities, setUserCommunities] = useState<any[]>([]);
 
-  const openLink = async (url: string) => {
-    try {
-      await Linking.openURL(url);
-    } catch (error) {
-      console.error("リンクを開けませんでした:", error);
-    }
-  };
+  const [selectedTab, setSelectedTab] = useState<"events" | "communities">("events");
 
-  // 投稿データの取得
   useEffect(() => {
     if (currentUser) {
-      const postsRef = dbRef(getDatabase(), "posts");
+      const db = getDatabase();
 
-      const unsubscribePosts = onValue(postsRef, (snapshot) => {
-        const postsData = snapshot.val() || {};
-
-        const myPostsArray = Object.entries(postsData)
-          .filter(([_, post]: any) => post.userId === currentUser.uid)
-          .map(([id, post]: any) => ({
-            id,
-            ...post,
-          }));
-
-        setUserPosts(myPostsArray);
-
-        const likedPostsArray = Object.entries(postsData)
-          .filter(([_, post]: any) =>
-            post.likedUserIds?.includes(currentUser.uid)
-          )
-          .map(([id, post]: any) => ({
-            id,
-            ...post,
-          }));
-
-        setLikedPosts(likedPostsArray);
-      });
-
-      return () => unsubscribePosts();
-    }
-  }, []);
-
-  // ユーザー情報取得
-  useEffect(() => {
-    if (currentUser) {
-      const userRef = dbRef(getDatabase(), `users/${currentUser.uid}`);
+      // ユーザープロフィールの取得
+      const userRef = dbRef(db, `users/${currentUser.uid}`);
       get(userRef).then((snapshot) => {
         if (snapshot.exists()) {
-          setProfileData(snapshot.val());
+          const userData = snapshot.val();
+          setProfileData({
+            username: userData.username,
+            homePoint: userData.homePoint,
+            boardType: userData.boardType,
+            bio: userData.bio,
+            mediaUrl: userData.mediaUrl || "", // プロフィール画像のURL
+          });
+        }
+      });
+
+      // 投稿、イベント、コミュニティの取得
+      const fetchPosts = query(dbRef(db, "posts"), orderByChild("createdAt"));
+      get(fetchPosts).then((snapshot) => {
+        if (snapshot.exists()) {
+          const postsData = snapshot.val() || {};
+          const postsArray = Object.entries(postsData).map(([id, post]: any) => ({
+            id,
+            ...post,
+          }));
+          setUserPosts(postsArray);
+        }
+      });
+
+      // イベントの取得
+      const eventsRef = dbRef(db, "events");
+      get(eventsRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          const eventsData = snapshot.val() || {};
+          const eventsArray = Object.entries(eventsData).map(([id, event]: any) => ({
+            id,
+            ...event,
+          }));
+          setUserEvents(eventsArray);
+        }
+      });
+
+      // コミュニティの取得
+      const communitiesRef = dbRef(db, "communities");
+      get(communitiesRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          const communitiesData = snapshot.val() || {};
+          const communitiesArray = Object.entries(communitiesData).map(([id, community]: any) => ({
+            id,
+            ...community,
+          }));
+          setUserCommunities(communitiesArray);
         }
       });
     }
-  }, []);
+  }, [currentUser]);
 
-  const renderSnsButtons = () => (
-    <View style={styles.socialContainer}>
-      {Object.entries(profileData.socialLinks).map(([platform, link]) =>
-        link ? (
-          <TouchableOpacity key={platform} onPress={() => openLink(link)}>
-            <Image source={SNS_ICONS[platform]} style={styles.snsIcon} />
-          </TouchableOpacity>
-        ) : null
+  const openTab = (tab: "events" | "communities") => {
+    setSelectedTab(tab);
+  };
+
+  // イベントタブ
+  const EventsTab = () => (
+    <FlatList
+      data={userEvents}
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text>{item.date}</Text>
+        </View>
       )}
-    </View>
+      keyExtractor={(item) => item.id}
+    />
   );
 
-  const renderPostItem = ({ item }: { item: Post }) => (
-    <View style={styles.postCard}>
-      <Text style={styles.postContent}>{item.content}</Text>
-      {item.media && (
-        <Image source={{ uri: item.media }} style={styles.postImage} />
+  // コミュニティタブ
+  const CommunitiesTab = () => (
+    <FlatList
+      data={userCommunities}
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text>{item.description}</Text>
+        </View>
       )}
-    </View>
+      keyExtractor={(item) => item.id}
+    />
   );
 
-  const renderTabs = () => (
-    <View style={styles.tabContainer}>
-      {(["myPosts", "likedPosts"] as const).map((tab) => (
-        <TouchableOpacity
-          key={tab}
-          style={[styles.tabButton, selectedTab === tab && styles.activeTab]}
-          onPress={() => setSelectedTab(tab as "myPosts" | "likedPosts")}
-        >
-          <Text style={styles.tabText}>
-            {tab === "myPosts" ? "あなたの投稿" : "いいねした投稿"}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
-  const getPostsData = () =>
-    selectedTab === "myPosts" ? userPosts : likedPosts;
+  
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* 固定ヘッダー部分 */}
-      <View style={styles.header}>
-        <Image
-          source={require("../assets/icons/iconmain3.png")}
-          style={styles.logo}
-        />
-        <Text style={styles.headerTitle}>プロフィール</Text>
+    <View style={styles.container}>
+      {/* プロフィール情報 */}
+      <View style={styles.profileContainer}>
+        {profileData.mediaUrl? (
+          <Image
+            source={{ uri: profileData.mediaUrl }}
+            style={styles.profileImage}
+          />
+        ) : (
+          <Text>No profile image</Text> // 画像がない場合
+        )}
+        <Text style={styles.userName}>{profileData.username}</Text>
+        {profileData.bio && <Text style={styles.bioText}>{profileData.bio}</Text>}
+        <Text style={styles.infoText}>ホームポイント: {profileData.homePoint}</Text>
+        <Text style={styles.infoText}>ボードタイプ: {profileData.boardType}</Text>
       </View>
-      <View style={styles.container}>
-        {/* プロフィール情報 */}
-        <View style={styles.profileContainer}>
-          {profileData.mediaUrl && (
-            <Image source={{ uri: profileData.mediaUrl }} style={styles.avatar} />
-          )}
-          <Text style={styles.userName}>{profileData.username}</Text>
-          {profileData.bio && (
-            <Text style={styles.bioText}>{profileData.bio}</Text>
-          )}
-          <Text style={styles.infoText}>
-            ホームポイント: {profileData.homePoint}
-          </Text>
-          <Text style={styles.infoText}>
-            ボードタイプ：{profileData.boardType}
-          </Text>
 
-          {renderSnsButtons()}
-        </View>
+      {/* シンプルなタブ切り替え */}
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tabButton, selectedTab === "events" && styles.activeTab]}
+          onPress={() => openTab("events")}
+        >
+          <Text style={styles.tabText}>イベント</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, selectedTab === "communities" && styles.activeTab]}
+          onPress={() => openTab("communities")}
+        >
+          <Text style={styles.tabText}>コミュニティ</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* タブ切り替えボタン */}
-        {renderTabs()}
-
-        {/* 投稿リスト表示 */}
-        <FlatList
-          data={getPostsData()}
-          renderItem={renderPostItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.postsContainer}
-        />
+      {/* タブ内容 */}
+      <View style={styles.tabContent}>
+        {selectedTab === "events" ? <EventsTab /> : <CommunitiesTab />}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
-    height: 60,
-    backgroundColor: "#3AAAD2",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+  container: {
+    flex: 1,
+    padding: 10,
   },
-  logo: {
-    width: 40,
-    height: 40,
-    resizeMode: "contain",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-    marginLeft: 10,
-  },
-  container: { flex: 1, backgroundColor: "#B3E5FC" },
   profileContainer: {
-    padding: 20,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 15,
     alignItems: "center",
-    marginHorizontal: 15,
-    marginTop: 10,
+    marginBottom: 20,
   },
-  avatar: { width: 120, height: 120, borderRadius: 60 },
-  userName: { fontSize: 24, fontWeight: "bold", color: "#2C3E50" },
-  infoText: { fontSize: 16, marginVertical: 4 },
-  bioText: { fontStyle: "italic", textAlign: "center", paddingVertical: 5 },
-  socialContainer: {
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginVertical: 10,
+  },
+  bioText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginVertical: 10,
+  },
+  infoText: {
+    fontSize: 16,
+    marginVertical: 5,
+    textAlign: "center",
+  },
+  tabs: {
     flexDirection: "row",
-    justifyContent: "center",
-    marginVertical: 15,
+    marginBottom: 20,
   },
-  snsIcon: { width: 25, height: 25, marginHorizontal: 10 },
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
+  tabButton: {
+    flex: 1,
+    padding: 10,
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
+    marginRight: 5,
+    borderRadius: 5,
   },
-  tabButton: { paddingVertical: 8 },
-  activeTab: { borderBottomWidth: 3, borderBottomColor: "#007AFF" },
-  postCard: {
-    backgroundColor: "#FFFFFF",
-    padding: 15,
-    borderRadius: 10,
-    marginVertical: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    elevation: 3,
+  activeTab: {
+    backgroundColor: "#007bff",
   },
-  postContent: { fontSize: 16, color: "#333" },
-  postImage: { width: "100%", height: 200, borderRadius: 8 },
-  postsContainer: { paddingHorizontal: 10 },
   tabText: {
     fontSize: 16,
-    color: "#007AFF",
+    color: "#333",
+  },
+  tabContent: {
+    flex: 1,
+  },
+  card: {
+    backgroundColor: "#f9f9f9",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 

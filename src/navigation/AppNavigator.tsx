@@ -11,7 +11,6 @@ import ProfileScreen from "../screens/ProfileScreen";
 import EventScreen from "../screens/EventScreen";
 import EventDetailScreen from "../screens/EventDetailScreen";
 import EventCreateScreen from "../screens/EventCreateScreen"; // パスを確認・修正
-import NotificationScreen from "../screens/SpotSharingScreen";
 import CommunityScreen from "../screens/CommunityScreen";
 import MessagesScreen from "../screens/MessagesScreen";
 import CreatePostScreen from "../screens/CreatePostScreen"; // ファイルパスに応じて修正
@@ -49,8 +48,8 @@ const BottomTabs = () => {
             case "スポット":
               iconName = require("../assets/icons/sport.png");
               break;
-            case "メッセージ":
-              iconName = require("../assets/icons/chat2.png");
+            case "プロフィール":
+              iconName = require("../assets/icons/profile.png");
           }
 
           return <Image source={iconName} style={{ width: 24, height: 24 }} />;
@@ -61,7 +60,7 @@ const BottomTabs = () => {
       <Tab.Screen name="イベント" component={EventScreen} />
       <Tab.Screen name="コミュニティ" component={CommunityScreen} />
       <Tab.Screen name="スポット" component={ SpotSharingScreen} />
-      <Tab.Screen name="メッセージ" component={MessagesScreen} />
+      <Tab.Screen name="プロフィール" component={ProfileScreen} />
     </Tab.Navigator>
   );
 };

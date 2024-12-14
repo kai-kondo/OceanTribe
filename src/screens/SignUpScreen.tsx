@@ -68,7 +68,7 @@ const SignUpScreen = ({ navigation }: Props) => {
           {/* ヘッダー */}
           <View style={styles.headerContainer}>
             <Image
-              source={require("../assets/icons/iconmain3.png")}
+              source={require("../assets/icons/OceanTribeLogo.png")}
               style={styles.logo}
             />
             <Text style={styles.title}>OceanTribe</Text>
