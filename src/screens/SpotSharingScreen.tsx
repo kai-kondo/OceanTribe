@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  ScrollView, 
+  ScrollView,
   TextInput,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
@@ -62,7 +62,7 @@ const SpotSharingScreen = () => {
 
   // フィルタリングロジック
   const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.surfSpotName?.toLowerCase().includes(searchText.toLowerCase()) || 
+    const matchesSearch = post.surfSpotName?.toLowerCase().includes(searchText.toLowerCase()) ||
                           post.content?.toLowerCase().includes(searchText.toLowerCase());
     const matchesArea = selectedArea === 'すべて' || post.selectedArea === selectedArea;
     return matchesSearch && matchesArea;
@@ -83,7 +83,7 @@ const SpotSharingScreen = () => {
         const combinedData = Object.entries(postsData).map(([id, post]: [string, any]) => {
           // ユーザーデータを取得
           const userData = usersData[post.userId] || {};
-          
+
           // 投稿データを整形
           return {
             id,
@@ -102,7 +102,7 @@ const SpotSharingScreen = () => {
 
         // 日付順にソート
         const sortedData = combinedData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        
+
         console.log('Sorted Combined Data:', sortedData); // デバッグ用
         setPosts(sortedData);
       } catch (error) {
@@ -247,7 +247,7 @@ const SpotSharingScreen = () => {
                 <Text style={styles.postDetails}>{item.waveHeight}</Text>
               </View>
             )}
-            
+
           </View>
         </View>
 
@@ -294,8 +294,8 @@ const SpotSharingScreen = () => {
     const { firstRow, secondRow } = getAreasForRows();
 
     return (
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.areaButtonContainer}
         style={styles.areaButtonScrollView}
@@ -316,7 +316,7 @@ const SpotSharingScreen = () => {
               </TouchableOpacity>
             ))}
           </View>
-          
+
           {/* 2行目 */}
           <View style={[styles.areaButtonRow, { marginBottom: 30 }]}>
             {secondRow.map((area) => (
@@ -347,10 +347,10 @@ const SpotSharingScreen = () => {
         onChangeText={setSearchText}
       />
     </View>
-    
+
       <AreaSelector />
 
-      
+
       <FlatList
         data={filteredPosts}
         renderItem={renderPostItem}
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
     paddingTop: 10,
-    paddingBottom: 20, 
+    paddingBottom: 20,
   },
   actionButton: {
     flexDirection: "row",
