@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  SafeAreaView,
+  Platform,
+  KeyboardAvoidingView,
+} from "react-native";
 import { getDatabase, ref, push, onValue } from "firebase/database";
 import { getAuth } from "firebase/auth";
 
@@ -20,7 +31,7 @@ type User = {
 const CommunityDetailScreen = ({ route }: any) => {
   const { community } = route.params;
 
-  const [comments, setComments] = useState<Comment[]>([]);  // 初期値を空の配列に設定
+  const [comments, setComments] = useState<Comment[]>([]); // 初期値を空の配列に設定
   const [users, setUsers] = useState<{ [key: string]: User }>({});
   const [newComment, setNewComment] = useState("");
 
@@ -31,7 +42,7 @@ const CommunityDetailScreen = ({ route }: any) => {
   // コメントデータを取得
   useEffect(() => {
     const unsubscribe = onValue(commentsRef, (snapshot) => {
-      const data = snapshot.val() || {};  // dataがnullの場合は空オブジェクトを使用
+      const data = snapshot.val() || {}; // dataがnullの場合は空オブジェクトを使用
       const commentList: Comment[] = Object.values(data);
       setComments(commentList);
     });
@@ -42,7 +53,7 @@ const CommunityDetailScreen = ({ route }: any) => {
   // ユーザー情報を取得
   useEffect(() => {
     const unsubscribe = onValue(usersRef, (snapshot) => {
-      const data = snapshot.val() || {};  // dataがnullの場合は空オブジェクトを使用
+      const data = snapshot.val() || {}; // dataがnullの場合は空のオブジェクトを使用
       setUsers(data);
     });
 
@@ -54,7 +65,12 @@ const CommunityDetailScreen = ({ route }: any) => {
       const auth = getAuth();
       const userId = auth.currentUser ? auth.currentUser.uid : null; // ログインユーザーのIDを取得
       if (userId) {
-        push(commentsRef, { content: newComment, userId, likes: 0, replies: [] });
+        push(commentsRef, {
+          content: newComment,
+          userId,
+          likes: 0,
+          replies: [],
+        });
         setNewComment("");
       } else {
         console.log("ユーザーがログインしていません");
@@ -74,203 +90,321 @@ const CommunityDetailScreen = ({ route }: any) => {
     setComments(updatedComments);
   };
 
-  // コメントのレンダリング
-  const renderComment = ({ item, index }: { item: Comment; index: number }) => {
-    const user = users[item.userId] || {}; // コメントに関連するユーザー情報を取得、存在しない場合は空のオブジェクト
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <View style={styles.communityInfoContainer}>
+        {/* コミュニティアイコン */}
+        <Image
+          source={{
+            uri: community.imageUrl || "https://via.placeholder.com/80",
+          }}
+          style={styles.communityIcon}
+        />
+        <View style={styles.communityInfo}>
+          <Text style={styles.communityTitle}>{community.title}</Text>
+          <View style={styles.communityStats}>
+            <Text style={styles.statsText}>メンバー 125人</Text>
+            <Text style={styles.statsText}>・</Text>
+            <Text style={styles.statsText}>投稿 89件</Text>
+          </View>
+        </View>
+      </View>
 
-    // ユーザー名、ユーザー画像、ホームポイントが存在しない場合はデフォルトの値を使用
+      {/* コミュニティの説明 */}
+      <Text style={styles.description}>{community.description}</Text>
+
+      {/* アクションボタン */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.joinButton}>
+          <Text style={styles.joinButtonText}>参加する</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.inviteButton}>
+          <Text style={styles.inviteButtonText}>友達を招待</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* トピック一覧ヘッダー */}
+      <View style={styles.topicsHeader}>
+        <Text style={styles.topicsTitle}>トピック一覧</Text>
+        <TouchableOpacity style={styles.newTopicButton}>
+          <Text style={styles.newTopicText}>新規作成</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderComment = ({ item, index }: { item: Comment; index: number }) => {
+    const user = users[item.userId] || {};
     const username = user.username || "不明";
-    const mediaUrl =
-      user.mediaUrl || "https://www.example.com/sample-image.jpg"; // サンプル画像URL
+    const mediaUrl = user.mediaUrl || "https://via.placeholder.com/40";
     const homePoint = user.homePoint || "不明";
 
     return (
       <View style={styles.commentContainer}>
         <View style={styles.userInfo}>
-          <Image source={{ uri: mediaUrl }} style={styles.userImage} />
+          <Image source={{ uri: mediaUrl }} style={styles.userAvatar} />
           <View style={styles.userDetails}>
             <Text style={styles.userName}>{username}</Text>
-            <Text style={styles.homePoint}>{homePoint}</Text>
+            <Text style={styles.timestamp}>2時間前</Text>
           </View>
         </View>
         <Text style={styles.commentContent}>{item.content}</Text>
-
-        {/* いいねと返信ボタン */}
         <View style={styles.commentActions}>
-          <TouchableOpacity onPress={() => handleLike(index)} style={styles.actionButton}>
-            <Text style={styles.actionButtonText}>👍 {item.likes}</Text>
+          <TouchableOpacity style={styles.actionButton}>
+            <Image
+              source={require("../assets/icons/like.png")}
+              style={styles.actionIcon}
+            />
+            <Text style={styles.actionCount}>{item.likes}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleReply(index, "新しい返信内容")}
-            style={styles.actionButton}
-          >
-            <Text style={styles.actionButtonText}>返信</Text>
+          <TouchableOpacity style={styles.actionButton}>
+            <Image
+              source={require("../assets/icons/comment.png")}
+              style={styles.actionIcon}
+            />
+            <Text style={styles.actionCount}>{item.replies?.length || 0}</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  return (
-    <View style={styles.container}>
-      {/* コミュニティタイトル */}
-      <ScrollView style={styles.scrollViewContainer} contentContainerStyle={styles.scrollViewContent}>
-        <Text style={styles.title}>{community.title}</Text>
-
-        {/* コミュニティ画像 */}
-        {community.imageUrl ? (
-          <Image source={{ uri: community.imageUrl }} style={styles.image} />
-        ) : null}
-
-        {/* コミュニティ説明 */}
-        <Text style={styles.description}>{community.description}</Text>
-
-        {/* コメント一覧 */}
+  return(
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
         <FlatList
-          data={comments}  // ここでコメントデータを使用
+          data={comments}
           renderItem={renderComment}
           keyExtractor={(item, index) => index.toString()}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.contentContainer}
         />
-      </ScrollView>
 
-      {/* コメント入力フォーム */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          value={newComment}
-          onChangeText={setNewComment}
-          placeholder="コメントを入力"
-          placeholderTextColor="#999"
-          style={styles.input}
-        />
-        <TouchableOpacity onPress={handleAddComment} style={styles.addButton}>
-          <Text style={styles.addButtonText}>送信</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        {/* コメント入力エリア */}
+        <View style={styles.inputContainer}>
+          <Image
+            source={{ uri: "https://via.placeholder.com/32" }}
+            style={styles.inputAvatar}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="コメントを入力..."
+            value={newComment}
+            onChangeText={setNewComment}
+            multiline
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              !newComment.trim() && styles.sendButtonDisabled,
+            ]}
+            onPress={handleAddComment}
+            disabled={!newComment.trim()}
+          >
+            <Text style={styles.sendButtonText}>送信</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#B3E5FC",  // メインカラーをライトブルーに
+    backgroundColor: "#F6F6F6",
   },
-  scrollViewContainer: {
+  contentContainer: {
+    paddingBottom: 80,
+  },
+  headerContainer: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    marginBottom: 8,
+  },
+  communityInfoContainer: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  communityIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 16,
+  },
+  communityInfo: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 80, // 下のコメント入力フォームのスペース確保
+    justifyContent: "center",
   },
-  scrollViewContent: {
-    flexGrow: 1,
-  },
-  title: {
-    fontSize: 26,
+  communityTitle: {
+    fontSize: 20,
     fontWeight: "700",
-    marginBottom: 12,
-    color: "#333",  // ヘッダーの文字色
-    textAlign: "center",
+    color: "#333333",
+    marginBottom: 8,
   },
-  image: {
-    width: "100%",
-    height: 200,
-    resizeMode: "cover",
-    borderRadius: 15,
-    marginBottom: 20,
+  communityStats: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statsText: {
+    fontSize: 14,
+    color: "#666666",
+    marginRight: 4,
   },
   description: {
-    fontSize: 16,
-    color: "#555",  // 説明文の色
-    marginBottom: 20,
-    lineHeight: 22,
+    fontSize: 14,
+    color: "#333333",
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  joinButton: {
+    flex: 2,
+    backgroundColor: "#FF6B6B",
+    padding: 12,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  joinButtonText: {
+    color: "#FFFFFF",
     textAlign: "center",
+    fontWeight: "600",
+  },
+  inviteButton: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FF6B6B",
+  },
+  inviteButtonText: {
+    color: "#FF6B6B",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  topicsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#EEEEEE",
+  },
+  topicsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333333",
+  },
+  newTopicButton: {
+    padding: 8,
+  },
+  newTopicText: {
+    color: "#FF6B6B",
+    fontSize: 14,
+    fontWeight: "600",
   },
   commentContainer: {
-    backgroundColor: "#FFFFFF",  // コメントカード背景
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    marginBottom: 8,
   },
   userInfo: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  userImage: {
-    width: 35,
-    height: 35,
-    borderRadius: 25,
-    marginRight: 15,
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
   userDetails: {
-    flexDirection: "column",
+    flex: 1,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#333",  // ユーザー名の色
+    color: "#333333",
+    marginBottom: 2,
   },
-  homePoint: {
-    fontSize: 14,
-    color: "#777",  // ホームポイントの色
-    marginTop: 4,
+  timestamp: {
+    fontSize: 12,
+    color: "#999999",
   },
   commentContent: {
-    fontSize: 18,
-    color: "#444",  // コメント内容の色
-    marginTop: 8,
+    fontSize: 15,
+    color: "#333333",
+    lineHeight: 22,
+    marginBottom: 12,
   },
   commentActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
+    alignItems: "center",
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 5,
+    marginRight: 16,
   },
-  actionButtonText: {
-    fontSize: 16,
-    color: "#007AFF",  // いいね・返信ボタンの色
+  actionIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 4,
+    tintColor: "#666666",
+  },
+  actionCount: {
+    fontSize: 14,
+    color: "#666666",
   },
   inputContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: "row",
     alignItems: "center",
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+    padding: 8,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#EEEEEE",
+  },
+  inputAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
   },
   input: {
     flex: 1,
-    height: 50,
-    paddingLeft: 15,
-    paddingRight: 15,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: "#ccc",  // 入力ボックスの枠線
-    backgroundColor: "#f8f8f8",
-    fontSize: 16,
-    marginRight: 10,
+    backgroundColor: "#F6F6F6",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    maxHeight: 100,
   },
-  addButton: {
-    backgroundColor: "#007AFF",  // 送信ボタンの背景色
-    paddingVertical: 15,
-    paddingHorizontal: 25,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
+  sendButton: {
+    backgroundColor: "#FF6B6B",
+    padding: 8,
+    borderRadius: 16,
+    minWidth: 60,
   },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  sendButtonDisabled: {
+    backgroundColor: "#CCCCCC",
+  },
+  sendButtonText: {
+    color: "#FFFFFF",
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 

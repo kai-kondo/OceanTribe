@@ -7,17 +7,22 @@ import {
   Image,
   StyleSheet,
   TextInput,
+  Dimensions,
 } from "react-native";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 
+const { width } = Dimensions.get("window");
+
 type Community = {
   id: string;
   title: string;
   description?: string;
-  tags: string[]; // タグは配列として保持
+  tags: string[];
   imageUrl?: string;
+  memberCount?: number;
+  lastActive?: string;
 };
 
 const CommunityScreen: React.FC<{ navigation: StackNavigationProp<any> }> = ({
@@ -74,20 +79,35 @@ const CommunityScreen: React.FC<{ navigation: StackNavigationProp<any> }> = ({
   const renderCommunityItem = ({ item }: { item: Community }) => (
     <TouchableOpacity
       onPress={() =>
-        navigation.navigate("CommunityDetail" as never, { community: item })
+        navigation.navigate("CommunityDetail", { community: item })
       }
+      style={styles.communityCard}
     >
-      <View style={styles.communityItem}>
-        {item.imageUrl && (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.communityImage}
-          />
-        )}
-        <View style={styles.communityDetails}>
-          <Text style={styles.communityName}>{item.title}</Text>
-          <Text style={styles.communityDescription}>{item.description}</Text>
+      <View style={styles.communityHeader}>
+        <Image source={{ uri: item.imageUrl }} style={styles.communityImage} />
+        <View style={styles.communityInfo}>
+          <Text style={styles.communityTitle}>{item.title}</Text>
+          <View style={styles.statsContainer}>
+            <Image
+              source={require("../assets/icons/community2.png")}
+              style={styles.statsIcon}
+            />
+            <Text style={styles.statsText}>{item.memberCount || 0}人</Text>
+            <Text style={styles.lastActive}>
+              最終更新: {item.lastActive || "数日前"}
+            </Text>
+          </View>
         </View>
+      </View>
+      <Text style={styles.description} numberOfLines={2}>
+        {item.description}
+      </Text>
+      <View style={styles.tagContainer}>
+        {item.tags.map((tag, index) => (
+          <View key={index} style={styles.tag}>
+            <Text style={styles.tagText}>#{tag}</Text>
+          </View>
+        ))}
       </View>
     </TouchableOpacity>
   );
@@ -96,158 +116,240 @@ const CommunityScreen: React.FC<{ navigation: StackNavigationProp<any> }> = ({
 
   return (
     <View style={styles.container}>
-      {/* グループ作成ボタン */}
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>コミュニティ</Text>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Image
+          source={require("../assets/icons/sarch.png")}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="コミュニティを検索"
+          value={searchText}
+          onChangeText={setSearchText}
+          placeholderTextColor="#999"
+        />
+      </View>
+
+      {/* Category Tabs */}
+      <View style={styles.categoryContainer}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={tags}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => setSelectedTab(item)}
+              style={[
+                styles.categoryTab,
+                selectedTab === item && styles.selectedCategoryTab,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedTab === item && styles.selectedCategoryText,
+                ]}
+              >
+                {item}
+              </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.categoryList}
+        />
+      </View>
+
+      {/* Communities List */}
+      <FlatList
+        data={filteredCommunities}
+        renderItem={renderCommunityItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.communityList}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* Create Community Button */}
       <TouchableOpacity
         style={styles.createButton}
         onPress={() => navigation.navigate("CommunityCreate")}
       >
-        <Text style={styles.createButtonText}>＋ グループ作成</Text>
+        <Text style={styles.createButtonText}>＋ 新規作成</Text>
       </TouchableOpacity>
-
-      {/* タブ部分 */}
-      <View style={styles.tabBar}>
-        {tags.length > 0 ? (
-          tags.map((tag) => (
-            <TouchableOpacity
-              key={tag}
-              onPress={() => setSelectedTab(tag)}
-              style={[
-                styles.tabButton,
-                selectedTab === tag && styles.activeTabButton,
-              ]}
-            >
-              <Text
-                style={
-                  selectedTab === tag ? styles.activeTabText : styles.tabText
-                }
-              >
-                {tag}
-              </Text>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text>タグがありません</Text>
-        )}
-      </View>
-
-      {/* 検索入力部分 */}
-      <TextInput
-        placeholder="コミュニティを検索"
-        value={searchText}
-        onChangeText={setSearchText}
-        style={styles.searchInput}
-      />
-
-      {/* コミュニティリスト部分 */}
-      <FlatList
-        data={filteredCommunities}
-        keyExtractor={(item) => item.id}
-        renderItem={renderCommunityItem}
-        showsVerticalScrollIndicator={false}
-      />
     </View>
   );
 };
 
-export default CommunityScreen;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#B3E5FC", // 背景色を水色に変更
+    backgroundColor: "#F5F5F5",
   },
-  createButton: {
-    backgroundColor: "#00BFFF", // ボタンの水色
-    paddingVertical: 15,
-    margin: 15,
-    borderRadius: 25,
+  header: {
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#333333",
+  },
+  searchContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#00BFFF", // 水色に合わせた影の色
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    elevation: 6,
-    position: "absolute",
-    bottom: 20,
-    left: 15,
-    right: 15,
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#EEEEEE",
   },
-  createButtonText: {
-    color: "#fff", // 白い文字色
-    fontWeight: "bold",
-    fontSize: 18,
+  searchIcon: {
+    width: 20,
+    height: 20,
+    tintColor: "#999999",
+    marginRight: 8,
   },
   searchInput: {
-    height: 45,
-    marginHorizontal: 15,
-    marginVertical: 15,
-    paddingHorizontal: 15,
-    backgroundColor: "#E8F5FE", // 優しい水色のグラデーション
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#00BFFF", // 水色で目立たせる
+    flex: 1,
+    paddingVertical: 12,
     fontSize: 16,
+    color: "#333333",
   },
-  tabBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-    backgroundColor: "#fff", // ホーム画面に合わせて白
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd", // 下の線を薄いグレー
-    marginBottom: 15,
+  categoryContainer: {
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
   },
-  tabButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 15,
+  categoryList: {
+    paddingHorizontal: 16,
+  },
+  categoryTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
     borderRadius: 20,
-    backgroundColor: "#f1f1f1", // 優しいグレー背景
-    marginHorizontal: 5, // タブ間のスペース
+    backgroundColor: "#F5F5F5",
   },
-  tabText: {
-    fontSize: 16,
-    color: "#00BFFF", // 水色
-    fontWeight: "500",
+  selectedCategoryTab: {
+    backgroundColor: "#2196F3",
   },
-  activeTabButton: {
-    backgroundColor: "#00BFFF", // アクティブタブ背景色を水色に
+  categoryText: {
+    fontSize: 14,
+    color: "#666666",
   },
-  activeTabText: {
-    fontWeight: "bold",
-    color: "#fff", // アクティブタブは白文字
+  selectedCategoryText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
-  communityItem: {
+  communityList: {
+    padding: 16,
+  },
+  communityCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  communityHeader: {
     flexDirection: "row",
-    backgroundColor: "#fff", // コミュニティアイテムの背景を白
-    marginHorizontal: 15,
-    marginVertical: 8,
-    padding: 12,
-    borderRadius: 15,
-    shadowColor: "#ccc", // 薄いグレー影
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    elevation: 5,
+    marginBottom: 12,
   },
   communityImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
-    marginRight: 15,
-    borderWidth: 1,
-    borderColor: "#ddd", // 明るいグレー
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 12,
   },
-  communityDetails: {
+  communityInfo: {
     flex: 1,
     justifyContent: "center",
   },
-  communityName: {
-    fontWeight: "bold",
+  communityTitle: {
     fontSize: 18,
-    color: "#333", // 濃いグレーで文字を際立たせる
-    marginBottom: 5,
+    fontWeight: "700",
+    color: "#333333",
+    marginBottom: 4,
   },
-  communityDescription: {
+  statsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statsIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 4,
+    tintColor: "#666666",
+  },
+  statsText: {
     fontSize: 14,
-    color: "#777", // 薄いグレーで落ち着いた印象
-    marginTop: 5,
+    color: "#666666",
+    marginRight: 12,
+  },
+  lastActive: {
+    fontSize: 12,
+    color: "#999999",
+  },
+  description: {
+    fontSize: 14,
+    color: "#666666",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  tagContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  tag: {
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  tagText: {
+    fontSize: 12,
+    color: "#666666",
+  },
+  createButton: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    backgroundColor: "#2196F3",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  createButtonText: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });
+
+export default CommunityScreen;

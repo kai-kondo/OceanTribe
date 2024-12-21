@@ -140,17 +140,19 @@ const EventScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Image
-          source={require("../assets/icons/iconmain3.png")}
+          source={require("../assets/icons/OceanTribeLogo.png")}
           style={styles.logo}
         />
         <Text style={styles.headerTitle}>イベント</Text>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => navigation.navigate("EventCreate")}
-        >
-          <Text style={styles.fabText}>＋</Text>
-        </TouchableOpacity>
+        <View style={styles.spacer} />
       </View>
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("EventCreate")}
+      >
+        <Text style={styles.fabText}>＋</Text>
+      </TouchableOpacity>
 
       <FlatList
         data={events}
@@ -163,7 +165,7 @@ const EventScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#B3E5FC" }, // 水色の背景
+  container: { flex: 1 }, // 水色の背景
 
   header: {
     flexDirection: "row",
@@ -171,17 +173,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: "#4FC3F7", // 水色
+    borderBottomWidth: 1,
+    borderBottomColor: "#008CBA", // 濃い青色に変更
+    backgroundColor: "#008CBA", // 海を連想する深い青
   },
-  logo: { width: 30, height: 30, resizeMode: "contain" },
-  headerTitle: { color: "#fff", fontSize: 24, fontWeight: "bold" },
+  logo: { width: 50, height: 50, resizeMode: "contain" },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+
+  spacer: {
+    flex: 1, // 空のスペースを作るために追加
+  },
+  
   fab: {
-    width: 40,
-    height: 40,
+    position: "absolute",
+    bottom: 20, // 画面下部から少し離して配置
+    right: 15, // 右端に配置
+    width: 60,
+    height: 60,
     backgroundColor: "#FF5733", // オレンジ色
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 20,
+    borderRadius: 30,
+    zIndex: 1000, // 他のコンテンツの上に表示
   },
   fabText: { color: "#fff", fontSize: 28, fontWeight: "bold" },
 
@@ -205,7 +222,7 @@ const styles = StyleSheet.create({
   attendees: { fontSize: 16, color: "#0288D1", marginTop: 5 }, // 青色
   joinButton: {
     marginTop: 15,
-    backgroundColor: "#4FC3F7", // 水色
+    backgroundColor: "#008CBA",
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
