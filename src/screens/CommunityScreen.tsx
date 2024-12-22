@@ -118,7 +118,18 @@ const CommunityScreen: React.FC<{ navigation: StackNavigationProp<any> }> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>コミュニティ</Text>
+        <View style={styles.headerContent}>
+          <Image
+            source={require("../assets/icons/headerCommunity.png")}
+            style={styles.communityIcon}
+          />
+          <View>
+            <Text style={styles.headerTitle}>コミュニティ</Text>
+            <Text style={styles.headerSubtitle}>
+              関心のあるトピックで盛り上がろう！
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -188,19 +199,37 @@ const CommunityScreen: React.FC<{ navigation: StackNavigationProp<any> }> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#E8F9FF",
   },
   header: {
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
+    backgroundColor: "#0277BD",
+    paddingTop: 25,
+    paddingBottom: 15,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+  },
+  headerContent: {
+    flexDirection: "row", // 横並びに配置
+    alignItems: "center", // アイテムを縦方向に中央揃え
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
+  },
+
+  communityIcon: {
+    width: 30, // アイコンのサイズ
+    height: 30, // アイコンのサイズ
+    marginRight: 10, // 画像とテキストの間にスペースを追加
+    marginTop: -5, // アイコンを上に上げる
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#333333",
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.8,
+    marginTop: 5,
   },
   searchContainer: {
     flexDirection: "row",

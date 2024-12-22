@@ -322,13 +322,20 @@ const SpotSharingScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={require("../assets/icons/OceanTribeLogo.png")}
-          style={styles.logo}
-        />
-        <Text style={styles.headerTitle}>スポット</Text>
-        <View style={styles.spacer} />
+        <View style={styles.headerContent}>
+          <Image
+            source={require("../assets/icons/spot2.png")}
+            style={styles.communityIcon}
+          />
+          <View>
+            <Text style={styles.headerTitle}>スポット</Text>
+            <Text style={styles.headerSubtitle}>
+              今日の波はどうか見てみよう！
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* サーチバー */}
@@ -457,27 +464,38 @@ const styles = StyleSheet.create({
   // 全体のコンテナ
   container: {
     flex: 1,
+    backgroundColor: "#E8F9FF",
   },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#008CBA", // 濃い青色に変更
-    backgroundColor: "#008CBA", // 海を連想する深い青
+    backgroundColor: "#0277BD",
+    paddingTop: 25,
+    paddingBottom: 15,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
   },
-  logo: { width: 50, height: 50, resizeMode: "contain" },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
+  headerContent: {
+    flexDirection: "row", // 横並びに配置
+    alignItems: "center", // アイテムを縦方向に中央揃え
+    paddingHorizontal: 20,
   },
 
-  spacer: {
-    flex: 1, // 空のスペースを作るために追加
+  communityIcon: {
+    width: 30, // アイコンのサイズ
+    height: 30, // アイコンのサイズ
+    marginRight: 10, // 画像とテキストの間にスペースを追加
+    marginTop: -5, // アイコンを上に上げる
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.8,
+    marginTop: 5,
   },
 
   // 投稿カード関連

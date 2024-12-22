@@ -111,11 +111,17 @@ const HomeScreen = ({ navigation }: any) => {
   }, []);
 
   const renderHeader = () => (
+
+
     <View style={styles.header}>
-      <Image
-        source={require("../assets/icons/OceanTribeLogo.png")}
-        style={styles.logo}
-      />
+      <View style={styles.headerContent}>
+        <Text style={styles.headerTitle}>ホーム</Text>
+        <Text style={styles.headerSubtitle}>
+          さぁ仲間を探そう！
+        </Text>
+      </View>
+
+      {/* 右側のアイコンボタン */}
       <View style={styles.headerRight}>
         <TouchableOpacity style={styles.iconButton}>
           <Image
@@ -300,38 +306,50 @@ const HomeScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#E8F9FF",
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#0277BD", // ヘッダーの背景色
+    paddingTop: 25,
+    paddingBottom: 15,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    flexDirection: "row", // 横並びに配置
+    justifyContent: "space-between", // 左側にコンテンツ、右側にアイコンを配置
+    alignItems: "center", // アイテムを中央揃え
   },
-  logo: {
-    width: 120,
-    height: 32,
-    resizeMode: "contain",
+  headerContent: {
+    flex: 1, // headerContentが左側に配置されるようにする
+    paddingHorizontal: 20,
   },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#FFFFFF", // 白色
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#FFFFFF", // 白色
+    opacity: 0.8,
+    marginTop: 5,
+  },
+
   headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row", // 横並びに配置
+    alignItems: "center", // アイコンを縦方向に中央揃え
+    paddingRight: 20, // 右側に余白を追加
   },
   headerIcon: {
     width: 24,
     height: 24,
-    tintColor: "#666666",
+    tintColor: "#666666", // アイコンの色を白に設定
+    // borderWidthやborderColorは削除
   },
   profilePic: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginLeft: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 25, // アイコンを円形に
+    // borderWidthやborderColorは削除
   },
   section: {
     paddingVertical: 16,
@@ -503,7 +521,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 8,
-    backgroundColor: "#F5F5F5",
   },
   filledStar: {
     color: "#FFD700", // 金色の星
@@ -518,14 +535,23 @@ const styles = StyleSheet.create({
     alignItems: "center", // 中央揃え
   },
   iconButton: {
-    padding: 10, // パディングを設定
-    borderRadius: 5, // 角を丸める
+    padding: 10, // パディングを大きくして、アイコン周りの余白を均等に
+    borderRadius: 50, // 完全に丸い形にする（大きめの値）
     backgroundColor: "#f0f0f0", // 背景色を設定
+    justifyContent: "center", // アイコンを中央に配置
+    alignItems: "center", // アイコンを中央に配置
+    width: 40, // アイコンボタンの幅を設定
+    height: 40, // アイコンボタンの高さを設定
   },
   profileButton: {
-    padding: 10, // パディングを設定
-    borderRadius: 5, // 角を丸める
-    backgroundColor: "#f0f0f0", // 背景色を設定
+    padding: 10, // パディングを大きくして、アイコン周りの余白を均等に
+    borderRadius: 50, // 完全に丸い形にする（大きめの値）
+    justifyContent: "center", // アイコンを中央に配置
+    alignItems: "center", // アイコンを中央に配置
+    width: 50, // アイコンボタンの幅を設定
+    height: 50, // アイコンボタンの高さを設定
+    borderWidth: 5, // 外枠の太さを設定
+    borderColor: "#ffffff", // 外枠の色を白に設定
   },
 });
 

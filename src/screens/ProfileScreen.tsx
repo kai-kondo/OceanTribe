@@ -8,6 +8,7 @@ import {
   Image,
   Linking,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { getAuth } from "firebase/auth";
 import {
   getDatabase,
@@ -16,6 +17,15 @@ import {
   orderByChild,
   get,
 } from "firebase/database";
+
+const platforms = ["instagram", "twitter", "facebook"] as const;
+type SocialPlatform = (typeof platforms)[number];
+
+const socialIcons: Record<SocialPlatform, any> = {
+  instagram: require("../assets/icons/Instagram_Glyph_Gradient.png"),
+  twitter: require("../assets/icons/logo-black.png"),
+  facebook: require("../assets/icons/Facebook_Logo_Primary.png"),
+};
 
 const ProfileScreen = () => {
   const currentUser = getAuth().currentUser;
@@ -30,7 +40,7 @@ const ProfileScreen = () => {
       instagram: "",
       twitter: "",
       facebook: "",
-    },
+    } as Record<SocialPlatform, string>,
   });
 
   const [userCommunities, setUserCommunities] = useState<any[]>([]);
@@ -41,7 +51,6 @@ const ProfileScreen = () => {
       console.error("Failed to open URL:", err)
     );
   };
-
 
   useEffect(() => {
     if (currentUser) {
@@ -100,78 +109,92 @@ const ProfileScreen = () => {
   }, [currentUser]);
 
   const ProfileHeader = () => (
-    <View style={styles.profileContainer}>
-      {/* プロフィール情報の上部: 画像、名前、ホームポイント、ボードタイプ */}
-      <View style={styles.profileTop}>
-        <Image
-          source={{ uri: profileData.mediaUrl }}
-          style={styles.profileImage}
-        />
-        <View style={styles.profileInfo}>
+    <>
+      {/* ヘッダー背景グラデーション */}
+      <LinearGradient
+        colors={["#4A90E2", "#357ABD"]}
+        style={styles.headerGradient}
+      >
+        <View style={styles.profileHeaderContent}>
+          {/* プロフィール画像 */}
+          <Image
+            source={{ uri: profileData.mediaUrl }}
+            style={styles.profileImage}
+          />
+
+          {/* ユーザー名とステータス */}
           <Text style={styles.userName}>{profileData.username}</Text>
 
-          {/* ホームポイントとボードタイプ */}
-          <View style={styles.detailsContainer}>
-            <View style={styles.detailItem}>
-              <Image
-                source={require("../assets/icons/wave2.png")}
-                style={styles.detailIcon}
-              />
-              <Text style={styles.detailText}>
-                ホームポイント: {profileData.homePoint}
-              </Text>
+          {/* フォロー情報 */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>426</Text>
+              <Text style={styles.statLabel}>フォロワー</Text>
             </View>
-
-            <View style={styles.detailItem}>
-              <Image
-                source={require("../assets/icons/surf.png")}
-                style={styles.detailIcon}
-              />
-              <Text style={styles.detailText}>
-                ボードタイプ: {profileData.boardType}
-              </Text>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>351</Text>
+              <Text style={styles.statLabel}>フォロー中</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{userPosts.length}</Text>
+              <Text style={styles.statLabel}>投稿</Text>
             </View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* 自己紹介 */}
-      <Text style={styles.bio}>{profileData.bio}</Text>
+      {/* プロフィール詳細カード */}
+      <View style={styles.profileDetailsCard}>
+        {/* ホームポイントとボードタイプ */}
+        <View style={styles.detailsRow}>
+          <View style={styles.detailItem}>
+            <Image
+              source={require("../assets/icons/wave2.png")}
+              style={styles.detailIcon}
+            />
+            <View>
+              <Text style={styles.detailLabel}>ホームポイント</Text>
+              <Text style={styles.detailValue}>{profileData.homePoint}</Text>
+            </View>
+          </View>
+          <View style={styles.detailItem}>
+            <Image
+              source={require("../assets/icons/surf.png")}
+              style={styles.detailIcon}
+            />
+            <View>
+              <Text style={styles.detailLabel}>ボードタイプ</Text>
+              <Text style={styles.detailValue}>{profileData.boardType}</Text>
+            </View>
+          </View>
+        </View>
 
-      {/* SNSリンク */}
-      <View style={styles.socialLinksContainer}>
-        {profileData.socialLinks?.instagram && (
-          <TouchableOpacity
-            onPress={() => openLink(profileData.socialLinks.instagram)}
-          >
-            <Image
-              source={require("../assets/icons/Instagram_Glyph_Gradient.png")}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
-        )}
-        {profileData.socialLinks?.twitter && (
-          <TouchableOpacity
-            onPress={() => openLink(profileData.socialLinks.twitter)}
-          >
-            <Image
-              source={require("../assets/icons/logo-black.png")}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
-        )}
-        {profileData.socialLinks?.facebook && (
-          <TouchableOpacity
-            onPress={() => openLink(profileData.socialLinks.facebook)}
-          >
-            <Image
-              source={require("../assets/icons/Facebook_Logo_Primary.png")}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
-        )}
+        {/* 自己紹介 */}
+        <Text style={styles.bio}>{profileData.bio}</Text>
+
+        {/* SNSリンク */}
+        <View style={styles.socialLinksContainer}>
+          {platforms.map(
+            (platform) =>
+              profileData.socialLinks[platform] && (
+                <TouchableOpacity
+                  key={platform}
+                  style={styles.socialButton}
+                  onPress={() => openLink(profileData.socialLinks[platform])}
+                >
+                  <Image
+                    source={socialIcons[platform]}
+                    style={styles.socialIcon}
+                  />
+                  <Text style={styles.socialText}>{platform}</Text>
+                </TouchableOpacity>
+              )
+          )}
+        </View>
       </View>
-    </View>
+    </>
   );
 
   const PostsSection = () => (
@@ -288,66 +311,58 @@ const ProfileScreen = () => {
     />
   );
 
+  const CommunitySection = ({ communities }:any) => (
+    <View>
+      <View style={styles.sectionHeaderContainer}>
+        <Image
+          source={require("../assets/icons/community2.png")} // アイコンのパス
+          style={styles.sectionIcon}
+        />
+        <Text style={styles.sectionHeader}>参加コミュニティ</Text>
+      </View>
+      <FlatList
+        data={communities}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <View style={styles.communitiesCard}>
+            {item.imageUrl && (
+              <View style={styles.communityMediaContainer}>
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.communityMedia}
+                />
+              </View>
+            )}
+            <Text style={styles.communityTitleText}>{item.title}</Text>
+          </View>
+        )}
+      />
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Image
-          source={require("../assets/icons/OceanTribeLogo.png")}
-          style={styles.logo}
-        />
-        <Text style={styles.headerTitle}>プロフィール</Text>
-        <View style={styles.spacer} />
-      </View>
 
+      {/* メインコンテンツ */}
       <FlatList
         data={userCommunities}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <>
-            {/* コミュニティセクション */}
-            <View style={styles.sectionHeaderContainer}>
-              <Image
-                source={require("../assets/icons/community2.png")} // アイコンのパス
-                style={styles.sectionIcon}
-              />
-              <Text style={styles.sectionHeader}>参加コミュニティ</Text>
-            </View>
-            <FlatList
-              data={userCommunities}
-              keyExtractor={(item) => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <View style={styles.communitiesCard}>
-                  {item.imageUrl && (
-                    <View style={styles.communityMediaContainer}>
-                      <Image
-                        source={{ uri: item.imageUrl }}
-                        style={styles.communityMedia}
-                      />
-                    </View>
-                  )}
-
-                  <Text style={styles.titleText}>{item.title}</Text>
-                </View>
-              )}
-            />
-
-            <View style={styles.sectionHeaderContainer}>
-              <Image
-                source={require("../assets/icons/post.png")} // アイコンのパス
-                style={styles.sectionIcon}
-              />
-              <Text style={styles.sectionHeader}>ポスト</Text>
-            </View>
-            <PostsSection />
-          </>
-        )}
         ListHeaderComponent={
           <>
-            {/* ユーザープロフィール表示 */}
+            {/* ユーザープロフィール */}
             <ProfileHeader />
-            {/* その他の内容 */}
+          </>
+        }
+        renderItem={null} // レンダリングはセクションで行うので無効化
+        ListFooterComponent={
+          <>
+            {/* コミュニティセクション */}
+            <CommunitySection communities={userCommunities} />
+
+            {/* ポストセクション */}
+            <PostsSection />
           </>
         }
       />
@@ -357,127 +372,159 @@ const ProfileScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "fff", // 海を感じさせる淡い青
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#008CBA", // 濃い青色に変更
-    backgroundColor: "#008CBA", // 海を連想する深い青
-  },
-  logo: { width: 50, height: 50, resizeMode: "contain" },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  spacer: {
-    flex: 1, // 空のスペースを作るために追加
+    backgroundColor: "#E8F9FF", // 海を感じさせる淡い青
   },
   // Profile styles
-  profileContainer: {
-    padding: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    marginBottom: 15,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 30,
   },
-  profileTop: {
-    flexDirection: "row", // 横並び
-    alignItems: "flex-start", // 上揃え
-    marginBottom: 15,
+  profileHeaderContent: {
+    alignItems: "center",
   },
   profileImage: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: 50,
-    borderWidth: 3,
-    borderColor: "#008CBA",
-    marginRight: 15,
-  },
-  profileInfo: {
-    flex: 1,
-    marginTop: 10, // 上部にスペースを追加
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+    marginBottom: 15,
   },
   userName: {
+    fontSize: 24,
     fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 20,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "80%",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    paddingVertical: 15,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statNumber: {
     fontSize: 20,
-    color: "#008CBA",
-    marginBottom: 10, // ユーザー名と他の情報の間にスペース
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
-  detailsContainer: {
-    marginTop: 10, // 上部にスペースを追加
+  statLabel: {
+    fontSize: 12,
+    color: "#FFFFFF",
+    opacity: 0.8,
   },
-  detailItem: {
-    flexDirection: "row", // アイコンとテキストを横並び
-    alignItems: "center", // 縦方向の中央揃え
-    marginBottom: 8, // 各項目の間にスペース
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: "rgba(255,255,255,0.3)",
   },
-  detailIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 8, // アイコンとテキスト間のスペース
-  },
-  detailText: {
-    fontSize: 14,
-    color: "#333", // テキストの色を少し暗くして視認性を高める
-  },
-  bioContainer: {
-    flexDirection: "row", // 自己紹介とSNSアイコンを横並び
-    alignItems: "center", // 縦方向で中央揃え
-    justifyContent: "space-between", // 自己紹介とSNSを分割
-    marginTop: 10,
-  },
-  bio: {
-    fontSize: 18,
-    color: "#666",
-    flex: 1, // SNSリンクとスペースを調整
-    marginRight: 10, // アイコンとの間にスペース
-  },
-  socialLinksContainer: {
-    flexDirection: "row", // SNSアイコンを横並びに配置
-  },
-  socialIcon: {
-    width: 23, // アイコンサイズ
-    height: 23,
-    marginLeft: 5, // 各アイコン間のスペース
-  },
-
-  // Communities styles
-  communitiesCard: {
-    borderRadius: 12,
-    padding: 15,
-    marginRight: 10,
-    marginBottom: 15,
-    width: 180,
+  profileDetailsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    margin: 15,
+    padding: 20,
     elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowRadius: 8,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  detailIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 10,
+    tintColor: "#4A90E2",
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: "#666",
+  },
+  detailValue: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "600",
+  },
+  bio: {
+    marginTop: 20,
+    textAlign: "center", // テキストを中央揃え
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  socialLinksContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+  socialButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F6F8",
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginHorizontal: 5,
+    marginVertical: 5,
+  },
+  socialIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  socialText: {
+    fontSize: 12,
+    color: "#666",
   },
 
+  communitiesCard: {
+    width: 120,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginHorizontal: 8,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2, // Android用のシャドウ
+  },
+  communityMediaContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40, // 丸型にする
+    overflow: "hidden",
+    marginBottom: 8,
+  },
   communityMedia: {
     width: "100%",
-    height: 140,
-    borderRadius: 8,
+    height: "100%",
     resizeMode: "cover",
   },
-
-  titleText: {
-    color: "#000",
-    fontSize: 11,
-    fontWeight: "bold",
+  communityTitleText: {
+    fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
+    color: "#555",
   },
 
   // Posts styles
@@ -501,7 +548,7 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 24, // アイコンの幅
     height: 24, // アイコンの高さ
-    marginRight: 10, // アイコンとテキストの間にスペースを追加
+    marginRight: 10, // アイコンとテキストの間にペースを追加
   },
   sectionHeader: {
     fontWeight: "bold",
@@ -556,11 +603,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 5,
     color: "#008CBA",
-  },
-  communityMediaContainer: {
-    marginVertical: 10,
-    borderRadius: 10,
-    overflow: "hidden",
   },
 });
 

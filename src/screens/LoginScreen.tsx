@@ -5,13 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ImageBackground,
-  Image,
   SafeAreaView,
+  Animated,
+  Easing,
+  Image,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { login } from "../services/firebase"; // firebaseConfigから正しいパスに修正
-
 
 export type RootStackParamList = {
   Login: undefined;
@@ -19,7 +19,7 @@ export type RootStackParamList = {
   Main: {
     screen: "Home" | "Event" | "News" | "Notification" | "Messages";
   };
-  Admin: undefined; // 管理者画面
+  Admin: undefined;
   AddSpot: undefined;
 };
 
@@ -30,6 +30,7 @@ type Props = {
 const LoginScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fadeAnim] = useState(new Animated.Value(0)); // アニメーションのための変数
 
   const handleLogin = () => {
     login(email, password)
@@ -37,65 +38,72 @@ const LoginScreen = ({ navigation }: Props) => {
         alert("ログイン成功");
         navigation.navigate("Main", { screen: "Home" });
       })
-      .catch((error:any) => {
+      .catch((error: any) => {
         alert(`ログインに失敗しました: ${error.message}`);
       });
   };
 
+  // アニメーションの開始
+  const fadeIn = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1200,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // ログイン画面がレンダリングされるときにアニメーションを開始
+  React.useEffect(() => {
+    fadeIn();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={require("../assets/images/login.jpg")}
-        style={styles.backgroundImage}
-        imageStyle={{ opacity: 0.7 }}
-      >
-        <View style={styles.gradientOverlay}>
-          <View style={styles.headerContainer}>
-            <Image
-              source={require("../assets/icons/OceanTribeLogo.png")}
-              style={styles.logo}
-            />
-            <Text style={styles.title}>OceanTribe</Text>
-            <Text style={styles.subtitle}>Join the Tribe, Ride the Waves</Text>
-          </View>
+      <View style={styles.backgroundContainer}>
+        <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
+          <Image
+            source={require("../assets/icons/OceanTribeLogo.png")} // ロゴを残す
+            style={styles.logo}
+          />
+          <Text style={styles.title}>OceanTribe</Text>
+          <Text style={styles.subtitle}>ログイン</Text>
 
-          <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="メールアドレス"
-              placeholderTextColor="#ddd"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="パスワード"
-              placeholderTextColor="#ddd"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>ログイン</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.signupLink}
-              onPress={() => navigation.navigate("SignUp")}
-            >
-              <Text style={styles.signupText}>新規登録はこちら</Text>
-            </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            placeholder="メールアドレス"
+            placeholderTextColor="#ddd"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="パスワード"
+            placeholderTextColor="#ddd"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            <Text style={styles.buttonText}>ログイン</Text>
+          </TouchableOpacity>
 
-            {/* ここに管理者画面へのリンクを追加 */}
-            <TouchableOpacity
-              style={styles.adminLink}
-              onPress={() => navigation.navigate("Admin")}
-            >
-              <Text style={styles.adminText}>管理者はこちら</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ImageBackground>
+          <TouchableOpacity
+            style={styles.signupLink}
+            onPress={() => navigation.navigate("SignUp")}
+          >
+            <Text style={styles.signupText}>新規登録はこちら</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.adminLink}
+            onPress={() => navigation.navigate("Admin")}
+          >
+            <Text style={styles.adminText}>管理者はこちら</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -103,80 +111,82 @@ const LoginScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#E0F7FA", // 明るい海の色
   },
-  backgroundImage: {
+  backgroundContainer: {
     flex: 1,
     justifyContent: "center",
+    paddingHorizontal: 30,
+    backgroundColor: "#00796B", // 深い海の色
   },
-  gradientOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // グラデーション風の半透明オーバーレイ
-    justifyContent: "center",
-    padding: 20,
-  },
-  headerContainer: {
-    alignItems: "center",
+  formContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    padding: 30,
+    borderRadius: 20,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
     marginBottom: 40,
   },
   logo: {
     width: 120,
     height: 120,
     resizeMode: "contain",
-    marginBottom: 15,
+    marginBottom: 20,
+    alignSelf: "center",
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: "bold",
-    color: "white",
+    color: "#00BCD4", // サーフィンに合った爽やかな青
     textAlign: "center",
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#ddd",
+    fontSize: 18,
+    color: "#00796B", // サブタイトルも海を連想させる色に
     textAlign: "center",
-    marginTop: 5,
-  },
-  formContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    padding: 20,
-    borderRadius: 10,
-    marginHorizontal: 20,
+    marginBottom: 20,
   },
   input: {
     height: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 5,
-    paddingHorizontal: 15,
+    borderColor: "#00BCD4",
+    borderWidth: 1,
+    borderRadius: 10,
     marginBottom: 15,
-    color: "white",
+    paddingLeft: 15,
+    fontSize: 16,
+    backgroundColor: "#ffffff",
   },
   button: {
-    backgroundColor: "#ffd700",
+    backgroundColor: "#00BCD4", // ボタンの色は海の青
     paddingVertical: 15,
-    borderRadius: 5,
+    borderRadius: 10,
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 15,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
-    color: "black",
+    color: "#ffffff",
   },
   signupLink: {
     alignItems: "center",
+    marginBottom: 10,
   },
   signupText: {
-    color: "#ddd",
-    fontSize: 14,
+    color: "#00796B", // リンク色は海を感じさせる深い青緑
+    fontSize: 16,
+    textDecorationLine: "underline",
   },
-
   adminLink: {
     alignItems: "center",
-    marginTop: 10,
   },
   adminText: {
-    color: "#ffd700",
-    fontSize: 14,
+    color: "#00BCD4", // 管理者リンクもサーフィンらしい青
+    fontSize: 16,
     fontWeight: "bold",
   },
 });
