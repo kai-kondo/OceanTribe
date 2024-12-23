@@ -19,7 +19,6 @@ const EventDetailScreen = ({ route, navigation }: any) => {
 
   useEffect(() => {
     const db = getDatabase();
-
     const eventRef = ref(db, `events/${eventId}`);
 
     get(eventRef)
@@ -39,18 +38,16 @@ const EventDetailScreen = ({ route, navigation }: any) => {
       .catch((error) => console.error("Failed to load event details:", error));
   }, [eventId]);
 
-  // Google Mapsリンクを開く関数
   const openGoogleMaps = (location: string) => {
     const url = `https://maps.google.com/?q=${encodeURIComponent(location)}`;
     Linking.openURL(url);
   };
 
-  // 参加処理を追加
   const handleJoin = async () => {
     const user = auth.currentUser;
 
     if (!user) {
-      alert("ログインが必要です。");
+      alert("ログインが必要です");
       return;
     }
 
@@ -67,7 +64,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
       const userId = user.uid;
 
       if (currentAttendees.includes(userId)) {
-        alert("既にこのイベントに参加しています！");
+        alert("既に参加しています！");
         return;
       }
 
@@ -77,77 +74,93 @@ const EventDetailScreen = ({ route, navigation }: any) => {
         attendees: updatedAttendees,
       });
 
-      alert("参加登録しました！");
-
-      // 参加者数を再度反映するためにイベント情報を更新
+      alert("参加登録完了！");
       setEvent((prevEvent: any) => ({
         ...prevEvent,
         attendees: updatedAttendees,
       }));
     } catch (error) {
       console.error("参加登録エラー:", error);
-      alert("エラーが発生しました。再試行してください。");
+      alert("エラーが発生しました。もう一度お試しください。");
     }
   };
 
   return (
     <ScrollView style={styles.container}>
-      {/* イベントカバー写真 */}
-      {event.mediaUrl && (
-        <Image source={{ uri: event.mediaUrl }} style={styles.coverImage} />
-      )}
-
-      {/* イベントタイトル */}
-      <Text style={styles.title}>{event.title}</Text>
-
-      {/* 日程、場所、主催者情報 */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.sectionTitle}>📝 イベント説明</Text>
-
-        {/* イベント説明追加 */}
-        {event.description && (
-          <Text style={styles.descriptionText}>{event.description}</Text>
+      {/* カバー画像 */}
+      <View style={styles.coverContainer}>
+        {event.mediaUrl && (
+          <Image source={{ uri: event.mediaUrl }} style={styles.coverImage} />
         )}
-
-        <Text style={styles.infoLabel}>📅 日時</Text>
-        <Text style={styles.infoText}>{event.date}</Text>
-
-        <Text style={styles.infoLabel}>📍 場所</Text>
-        <TouchableOpacity onPress={() => openGoogleMaps(event.location)}>
-          <Text style={styles.infoTextClickable}>{event.location}</Text>
-        </TouchableOpacity>
-
-        {/* 現在の参加者数 */}
-        <Text style={styles.infoLabel}>現在の参加者数</Text>
-        <Text style={styles.infoText}>{event.attendees?.length || 0} 人</Text>
-
-        {/* 主催者情報表示 */}
-        <Text style={styles.sectionTitle}>👤 主催者</Text>
-        {organizer.username && (
-          <View style={styles.organizerSection}>
-            {organizer.mediaUrl && (
-              <Image
-                source={{ uri: organizer.mediaUrl }}
-                style={styles.organizerImage}
-              />
-            )}
-            <Text style={styles.organizerName}>{organizer.username}</Text>
-          </View>
-        )}
+        <View style={styles.gradientOverlay} />
+        <Text style={styles.overlayTitle}>{event.title}</Text>
       </View>
 
-      {/* 参加ボタン */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.rsvpButton} onPress={handleJoin}>
-          <Text style={styles.buttonText}>参加してみる！</Text>
-        </TouchableOpacity>
+      {/* 参加者数バッジ */}
+      <View style={styles.attendeeBadge}>
+        <Text style={styles.attendeeCount}>{event.attendees?.length || 0}</Text>
+        <Text style={styles.attendeeLabel}>参加者</Text>
+      </View>
 
-        <TouchableOpacity
-          style={styles.contactButton}
-          onPress={() => Linking.openURL(`mailto:${organizer.email}`)}
-        >
-          <Text style={styles.buttonText}>主催者に問い合わせる</Text>
-        </TouchableOpacity>
+      {/* メインコンテンツ */}
+      <View style={styles.contentContainer}>
+        {/* 主催者情報 */}
+        <View style={styles.organizerSection}>
+          {organizer.mediaUrl && (
+            <Image
+              source={{ uri: organizer.mediaUrl }}
+              style={styles.organizerImage}
+            />
+          )}
+          <View style={styles.organizerInfo}>
+            <Text style={styles.organizerName}>{organizer.username}</Text>
+            <Text style={styles.organizerRole}>主催者</Text>
+          </View>
+        </View>
+
+        {/* イベント詳細 */}
+        <View style={styles.detailsSection}>
+          <View style={styles.detailItem}>
+            <Image
+              source={require("../assets/icons/detailCalender.png")} // 使用するアイコン画像
+              style={styles.detailIcon}
+            />
+            <Text style={styles.detailText}>{event.date}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.detailItem}
+            onPress={() => openGoogleMaps(event.location)}
+          >
+            <Image
+              source={require("../assets/icons/pin.png")} // 使用するアイコン画像
+              style={styles.detailIcon}
+            />
+            <Text style={styles.detailTextLink}>{event.location}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* イベント説明 */}
+        {event.description && (
+          <View style={styles.descriptionSection}>
+            <Text style={styles.descriptionTitle}>イベント詳細</Text>
+            <Text style={styles.descriptionText}>{event.description}</Text>
+          </View>
+        )}
+
+        {/* アクションボタン */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.joinButton} onPress={handleJoin}>
+            <Text style={styles.joinButtonText}>参加する</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.contactButton}
+            onPress={() => Linking.openURL(`mailto:${organizer.email}`)}
+          >
+            <Text style={styles.contactButtonText}>主催者に連絡</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -156,91 +169,151 @@ const EventDetailScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F9FA",
+  },
+  coverContainer: {
+    height: 280,
+    position: "relative",
   },
   coverImage: {
     width: "100%",
-    height: 250,
+    height: "100%",
     resizeMode: "cover",
-    marginBottom: 15,
   },
-  title: {
-    fontSize: 28,
+  gradientOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  overlayTitle: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    color: "#FFFFFF",
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#222",
-    paddingHorizontal: 15,
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  infoContainer: {
-    padding: 15,
-    marginVertical: 10,
+  attendeeBadge: {
+    position: "absolute",
+    top: 260,
+    right: 20,
+    backgroundColor: "#FF6B6B",
+    borderRadius: 20,
+    padding: 10,
+    alignItems: "center",
+    minWidth: 80,
+    elevation: 3,
   },
-  infoLabel: {
+  attendeeCount: {
+    color: "#FFFFFF",
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#555",
-    fontSize: 16,
-    marginTop: 10,
   },
-  infoText: {
-    fontSize: 16,
-    color: "#333",
+  attendeeLabel: {
+    color: "#FFFFFF",
+    fontSize: 12,
   },
-  infoTextClickable: {
-    fontSize: 16,
-    color: "#007AFF",
-    textDecorationLine: "underline",
-  },
-  buttonContainer: {
-    paddingVertical: 10,
-  },
-  rsvpButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  contactButton: {
-    backgroundColor: "#FF9500",
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonText: {
-    fontWeight: "bold",
-    color: "#fff",
-    fontSize: 18,
-  },
-
-  organizerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 10,
+  contentContainer: {
+    padding: 20,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20,
   },
   organizerSection: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
+    marginBottom: 20,
   },
   organizerImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 15,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  organizerInfo: {
+    marginLeft: 15,
   },
   organizerName: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333333",
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginVertical: 10,
-    color: "#333",
+  organizerRole: {
+    fontSize: 14,
+    color: "#666666",
+  },
+  detailsSection: {
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  detailIcon: {
+    width: 18, // アイコンの幅
+    height: 18, // アイコンの高さ
+    resizeMode: "contain", // アイコンが枠内に収まるように調整
+    marginRight: 5, // 右側に余白を追加
+  },
+  detailText: {
+    fontSize: 16,
+    color: "#333333",
+  },
+  detailTextLink: {
+    fontSize: 16,
+    color: "#4A90E2",
+  },
+  descriptionSection: {
+    marginBottom: 20,
+  },
+  descriptionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333333",
+    marginBottom: 10,
   },
   descriptionText: {
     fontSize: 16,
-    color: "#666",
-    marginVertical: 10,
+    color: "#666666",
+    lineHeight: 24,
+  },
+  actionButtons: {
+    gap: 10,
+  },
+  joinButton: {
+    backgroundColor: "#0277BD",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+  },
+  joinButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  contactButton: {
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  contactButtonText: {
+    color: "#495057",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

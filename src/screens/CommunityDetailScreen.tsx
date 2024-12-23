@@ -215,7 +215,7 @@ const CommunityDetailScreen = ({ route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F6F6F6",
+    backgroundColor: "#E8F9FF",
   },
   contentContainer: {
     paddingBottom: 80,

@@ -190,7 +190,7 @@ const CommunityScreen: React.FC<{ navigation: StackNavigationProp<any> }> = ({
         style={styles.createButton}
         onPress={() => navigation.navigate("CommunityCreate")}
       >
-        <Text style={styles.createButtonText}>＋ 新規作成</Text>
+        <Text style={styles.createButtonText}>＋ コミュニティを作成</Text>
       </TouchableOpacity>
     </View>
   );
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 16,
     bottom: 16,
-    backgroundColor: "#2196F3",
+    backgroundColor: "#FF6F61",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
