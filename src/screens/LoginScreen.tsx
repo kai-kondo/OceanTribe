@@ -96,12 +96,6 @@ const LoginScreen = ({ navigation }: Props) => {
             <Text style={styles.signupText}>新規登録はこちら</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.adminLink}
-            onPress={() => navigation.navigate("Admin")}
-          >
-            <Text style={styles.adminText}>管理者はこちら</Text>
-          </TouchableOpacity>
         </Animated.View>
       </View>
     </SafeAreaView>
@@ -111,16 +105,16 @@ const LoginScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E0F7FA", // 明るい海の色
+    backgroundColor: "#E8F9FF", // 明るく爽やかな青（新しい背景色）
   },
   backgroundContainer: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 30,
-    backgroundColor: "#00796B", // 深い海の色
+    backgroundColor: "#B3E5FC", // 優しい空色
   },
   formContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     padding: 30,
     borderRadius: 20,
     elevation: 10,
@@ -140,28 +134,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: "bold",
-    color: "#00BCD4", // サーフィンに合った爽やかな青
+    color: "#0288D1", // 鮮やかな青でタイトルを目立たせる
     textAlign: "center",
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 18,
-    color: "#00796B", // サブタイトルも海を連想させる色に
+    color: "#01579B", // 深い海の青で落ち着いた印象
     textAlign: "center",
     marginBottom: 20,
   },
   input: {
     height: 50,
-    borderColor: "#00BCD4",
+    borderColor: "#0288D1",
     borderWidth: 1,
     borderRadius: 10,
     marginBottom: 15,
     paddingLeft: 15,
     fontSize: 16,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#ffffff", // 入力欄は白でシンプルに
   },
   button: {
-    backgroundColor: "#00BCD4", // ボタンの色は海の青
+    backgroundColor: "#0288D1", // 鮮やかな青でボタンを際立たせる
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: "center",
@@ -170,14 +164,14 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#ffffff", // ボタンの文字は白で視認性を高める
   },
   signupLink: {
     alignItems: "center",
     marginBottom: 10,
   },
   signupText: {
-    color: "#00796B", // リンク色は海を感じさせる深い青緑
+    color: "#01579B", // 落ち着いた青でリンクを目立たせすぎない
     fontSize: 16,
     textDecorationLine: "underline",
   },
@@ -185,7 +179,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   adminText: {
-    color: "#00BCD4", // 管理者リンクもサーフィンらしい青
+    color: "#0288D1", // 管理者リンクは鮮やかな青で強調
     fontSize: 16,
     fontWeight: "bold",
   },

@@ -11,12 +11,31 @@ import {
   TextInput,
   Modal,
   TouchableWithoutFeedback,
+  Alert,
+  Share,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { getDatabase, ref, get, onValue } from "firebase/database";
-import RNPickerSelect from "react-native-picker-select";
+import {
+  getDatabase,
+  ref,
+  get,
+  onValue,
+  set,
+  push,
+  update,
+} from "firebase/database";
+import { getAuth } from "firebase/auth";
 
 const { width, height } = Dimensions.get("window");
+
+type Comment = {
+  id: string;
+  userId: string;
+  username: string;
+  content: string;
+  createdAt: number;
+  userAvatar?: string;
+};
 
 type Post = {
   id: string;
@@ -25,6 +44,15 @@ type Post = {
   media?: string;
   userData?: User;
   comment?: string;
+  comments?: {
+    [key: string]: {
+      userId: string;
+      username: string;
+      content: string;
+      createdAt: number;
+      userAvatar?: string;
+    };
+  };
   congestion?: string;
   createdAt?: string;
   reviewStars?: number;
@@ -36,6 +64,7 @@ type Post = {
   waveHeight?: string;
   mediaUrl?: string;
   reviewCount?: string;
+  likesCount?: number;
 };
 
 type User = {
@@ -54,6 +83,10 @@ const SpotSharingScreen = () => {
   const scrollViewRef = useRef<ScrollView | null>(null); // ScrollViewの参照を保持
   const [modalVisible, setModalVisible] = useState(false); // モーダルの表示状態
   const [searchText, setSearchText] = useState("");
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const [comments, setComments] = useState<Comment[]>([]);
 
   // エリアの選択肢
   const areas = [
@@ -76,6 +109,49 @@ const SpotSharingScreen = () => {
     "アイランド",
   ];
 
+  // コメントを投稿する関数
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !selectedPost) return;
+
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      Alert.alert("エラー", "コメントを投稿するにはログインが必要です");
+      return;
+    }
+
+    try {
+      const db = getDatabase();
+      const commentsRef = ref(db, `posts/${selectedPost.id}/comments`);
+
+      // ユーザー情報を取得
+      const userRef = ref(db, `users/${user.uid}`);
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val();
+
+      const newCommentData: Comment = {
+        id: "", // pushで自動生成されるIDを後で設定
+        userId: user.uid,
+        username: userData?.username || "匿名ユーザー",
+        content: newComment,
+        createdAt: Date.now(),
+        userAvatar: userData?.mediaUrl,
+      };
+
+      // コメントを追加
+      const newCommentRef = push(commentsRef);
+      newCommentData.id = newCommentRef.key || "";
+      await set(newCommentRef, newCommentData);
+
+      setNewComment("");
+      Alert.alert("成功", "コメントを投稿しました");
+    } catch (error) {
+      console.error("コメント投稿エラー:", error);
+      Alert.alert("エラー", "コメントの投稿に失敗しました");
+    }
+  };
+
   const handleAreaSelect = (area: string) => {
     setSelectedArea(area); // 選択されたエリアを状態にセット
     setModalVisible(false); // モーダルを閉じる
@@ -89,6 +165,82 @@ const SpotSharingScreen = () => {
       selectedArea === "すべて" || post.selectedArea === selectedArea;
     return matchesSearch && matchesArea;
   });
+
+  const handleLike = async (postId: string) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    const database = getDatabase();
+    const postLikesRef = ref(database, `posts/${postId}/likes/${user.uid}`);
+    const postRef = ref(database, `posts/${postId}/likes`);
+
+    try {
+      // likesオブジェクトのキー数を数えて現在のいいね数を取得
+      const postSnapshot = await get(postRef);
+      const likeSnapshot = await get(postLikesRef);
+
+      // 現在のいいね数を取得
+      let currentLikesCount = 0;
+      if (postSnapshot.exists()) {
+        currentLikesCount = Object.keys(postSnapshot.val()).length; // いいねをしたユーザーの数
+      }
+
+      // 既にい���ねされている場合、いいねを解除
+      if (likeSnapshot.exists()) {
+        await set(postLikesRef, null);
+        setPosts((prevPosts) =>
+          prevPosts.map((post) =>
+            post.id === postId
+              ? { ...post, likesCount: currentLikesCount - 1 }
+              : post
+          )
+        );
+      } else {
+        // まだいいねされていない場合、いいねを追加
+        await set(postLikesRef, true); // ユーザーがいいねしたことを記録
+        setPosts((prevPosts) =>
+          prevPosts.map((post) =>
+            post.id === postId
+              ? { ...post, likesCount: currentLikesCount + 1 }
+              : post
+          )
+        );
+      }
+    } catch (error) {
+      Alert.alert("エラー", "いいねの処理中にエラーが発生しました");
+    }
+  };
+
+  // コメントを開く関数
+  const handleOpenComments = async (post: Post) => {
+    setSelectedPost(post);
+    setCommentModalVisible(true);
+
+    // コメントを取得
+    const db = getDatabase();
+    const commentsRef = ref(db, `posts/${post.id}/comments`);
+
+    try {
+      const snapshot = await get(commentsRef);
+      if (snapshot.exists()) {
+        const commentsData = snapshot.val();
+        const formattedComments = Object.entries(commentsData).map(
+          ([id, data]: [string, any]) => ({
+            id,
+            ...data,
+          })
+        );
+        setComments(formattedComments);
+      } else {
+        setComments([]);
+      }
+    } catch (error) {
+      console.error("コメント取得エラー:", error);
+      Alert.alert("エラー", "コメントの取得に失敗しました");
+    }
+  };
 
   useEffect(() => {
     const db = getDatabase();
@@ -120,6 +272,7 @@ const SpotSharingScreen = () => {
               },
               mediaUrl: post.mediaUrl || null,
               comment: post.comment || null,
+              likesCount: post.likes ? Object.keys(post.likes).length : 0, // いいね数の更新
             };
           }
         );
@@ -163,13 +316,25 @@ const SpotSharingScreen = () => {
     };
   }, []);
 
+  // コメントのレンダリング
+  const renderComment = ({ item }: { item: Comment }) => (
+    <View style={styles.commentItem}>
+      <Image
+        source={{ uri: item.userAvatar || "https://via.placeholder.com/40" }}
+        style={styles.commentAvatar}
+      />
+      <View style={styles.commentContent}>
+        <Text style={styles.commentUsername}>{item.username}</Text>
+        <Text style={styles.commentText}>{item.content}</Text>
+        <Text style={styles.commentDate}>
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+      </View>
+    </View>
+  );
+
   const renderPostItem = ({ item }: { item: Post }) => {
     const user = item.userData;
-
-    <View style={styles.postCard}>
-      <Text>{item.surfSpotName}</Text>
-      <Text>{item.content}</Text>
-    </View>;
 
     return (
       <View style={styles.postCard}>
@@ -284,40 +449,32 @@ const SpotSharingScreen = () => {
 
           {/* アクションバー */}
           <View style={styles.actionBar}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleLike(item.id)}
+            >
               <Image
                 source={require("../assets/icons/like.png")}
                 style={styles.actionIcon}
               />
-              <Text style={styles.actionButtonText}>いいね</Text>
+              <Text style={styles.likesCount}>{item.likesCount}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleOpenComments(item)}
+            >
               <Image
                 source={require("../assets/icons/comment.png")}
                 style={styles.actionIcon}
               />
-              <Text style={styles.actionButtonText}>コメント</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Image
-                source={require("../assets/icons/share.png")}
-                style={styles.actionIcon}
-              />
-              <Text style={styles.actionButtonText}>共有</Text>
+              <Text style={styles.actionButtonText}>
+                {item.comments ? Object.keys(item.comments).length : 0}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
     );
-  };
-
-  // エリアボタンを2行に均等に分割
-  const getAreasForRows = () => {
-    const middleIndex = Math.ceil(areas.length / 2);
-    return {
-      firstRow: areas.slice(0, middleIndex),
-      secondRow: areas.slice(middleIndex),
-    };
   };
 
   return (
@@ -373,6 +530,55 @@ const SpotSharingScreen = () => {
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* コメントモーダル */}
+      <Modal
+        visible={commentModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setCommentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.commentModalContainer}>
+            {/* ヘッダー */}
+            <View style={styles.commentModalHeader}>
+              <Text style={styles.commentModalTitle}>コメント</Text>
+              <TouchableOpacity
+                onPress={() => setCommentModalVisible(false)}
+                style={styles.closeModalButton}
+              >
+                <Text style={styles.closeModalButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* コメントリスト */}
+            <FlatList
+              data={comments}
+              renderItem={renderComment}
+              keyExtractor={(item) => item.id}
+              style={styles.commentsList}
+              contentContainerStyle={styles.commentsListContainer}
+            />
+
+            {/* コメント入力 */}
+            <View style={styles.commentInputContainer}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="コメントを入力..."
+                value={newComment}
+                onChangeText={setNewComment}
+                multiline
+              />
+              <TouchableOpacity
+                style={styles.postCommentButton}
+                onPress={handlePostComment}
+              >
+                <Text style={styles.postCommentButtonText}>投稿</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       {/* モーダル */}
       <Modal
         visible={modalVisible}
@@ -606,7 +812,7 @@ const styles = StyleSheet.create({
     tintColor: "#666",
   },
   actionButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666",
   },
 
@@ -669,7 +875,7 @@ const styles = StyleSheet.create({
   },
   areaButtonRow: {
     flexDirection: "row",
-    justifyContent: "flex-start", // 左寄せに変更
+    justifyContent: "flex-start", // ��寄せに変更
     flexWrap: "wrap", // 折り返しを許可
     marginBottom: 3, // 行間のマージン
     paddingHorizontal: 10, // ボタン全体に少し余白を追加
@@ -809,6 +1015,118 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     tintColor: "#008CBA",
+  },
+  likesCount: {
+    fontSize: 14,
+    color: "#555",
+  },
+  likesCountText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 5,
+  },
+
+  // コメントモーダル関連のスタイル
+  commentModalContainer: {
+    width: "90%",
+    maxHeight: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  commentModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+    paddingBottom: 10,
+  },
+  commentModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  closeModalButton: {
+    padding: 10,
+  },
+  closeModalButtonText: {
+    fontSize: 20,
+    color: "#888",
+  },
+  commentsList: {
+    flexGrow: 0,
+    marginBottom: 15,
+  },
+  commentItem: {
+    flexDirection: "row",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  commentAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentUsername: {
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  commentText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 4,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: "#666",
+  },
+  commentInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 25,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  commentInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingHorizontal: 10,
+    color: "#333",
+  },
+  postCommentButton: {
+    backgroundColor: "#007BFF",
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginLeft: 10,
+  },
+  postCommentButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+
+  commentsListContainer: {
+    padding: 10, // 必要に応じてパディングを調整
   },
 });
 

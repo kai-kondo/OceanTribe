@@ -18,6 +18,8 @@ import {
   get,
 } from "firebase/database";
 
+import { useNavigation } from "@react-navigation/native";
+
 const platforms = ["instagram", "twitter", "facebook"] as const;
 type SocialPlatform = (typeof platforms)[number];
 
@@ -28,6 +30,7 @@ const socialIcons: Record<SocialPlatform, any> = {
 };
 
 const ProfileScreen = () => {
+  const navigation = useNavigation<any>();
   const currentUser = getAuth().currentUser;
 
   const [profileData, setProfileData] = useState({
@@ -40,11 +43,15 @@ const ProfileScreen = () => {
       instagram: "",
       twitter: "",
       facebook: "",
-    } as Record<SocialPlatform, string>,
+    } as Record<SocialPlatform, string>, // ここで明示的に型を指定
   });
 
   const [userCommunities, setUserCommunities] = useState<any[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
+
+  const handleEditIconPress = () => {
+    navigation.navigate("ProfileEdit"); // ProfileEditScreenに遷移
+  };
 
   const openLink = (url: any) => {
     Linking.openURL(url).catch((err) =>
@@ -116,6 +123,16 @@ const ProfileScreen = () => {
         style={styles.headerGradient}
       >
         <View style={styles.profileHeaderContent}>
+          <TouchableOpacity
+            style={styles.editIconContainer}
+            onPress={handleEditIconPress}
+          >
+            <Image
+              source={require("../assets/icons/edit.png")}
+              style={styles.editIcon}
+            />
+          </TouchableOpacity>
+
           {/* プロフィール画像 */}
           <Image
             source={{ uri: profileData.mediaUrl }}
@@ -311,7 +328,7 @@ const ProfileScreen = () => {
     />
   );
 
-  const CommunitySection = ({ communities }:any) => (
+  const CommunitySection = ({ communities }: any) => (
     <View>
       <View style={styles.sectionHeaderContainer}>
         <Image
@@ -344,24 +361,15 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-
       {/* メインコンテンツ */}
       <FlatList
         data={userCommunities}
+        renderItem={({ item }) => null}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={
-          <>
-            {/* ユーザープロフィール */}
-            <ProfileHeader />
-          </>
-        }
-        renderItem={null} // レンダリングはセクションで行うので無効化
+        ListHeaderComponent={<ProfileHeader />}
         ListFooterComponent={
           <>
-            {/* コミュニティセクション */}
             <CommunitySection communities={userCommunities} />
-
-            {/* ポストセクション */}
             <PostsSection />
           </>
         }
@@ -390,6 +398,18 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: "#FFFFFF",
     marginBottom: 15,
+  },
+
+  editIconContainer: {
+    position: "absolute", // 絶対位置
+    top: 10, // アイコンを上に移動
+    right: 20, // 右端の余白
+    zIndex: 10, // 他の要素の上に表示
+  },
+  editIcon: {
+    width: 24, // アイコンの幅
+    height: 24, // アイコンの高さ
+    tintColor: "#FFFFFF", // アイコンを白色に変更（必要に応じて削除）
   },
   userName: {
     fontSize: 24,

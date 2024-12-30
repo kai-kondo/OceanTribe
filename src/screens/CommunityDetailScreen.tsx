@@ -10,90 +10,284 @@ import {
   SafeAreaView,
   Platform,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
-import { getDatabase, ref, push, onValue } from "firebase/database";
+import { getDatabase, ref, push, onValue, set, get } from "firebase/database";
 import { getAuth } from "firebase/auth";
 
-// コメントとユーザー情報の型を定義
-type Comment = {
-  content: string;
+// 既存の型定義に加えて、メンバー情報の型を追加
+type Member = {
   userId: string;
-  likes: number;
-  replies: string[];
+  joinedAt: number;
 };
 
 type User = {
   username: string;
-  mediaUrl: string;
-  homePoint: string;
+  mediaUrl?: string;
+  boardType?: string;
+  homePoint?: string;
+};
+
+type Comment = {
+  id: string;
+  content: string;
+  userId: string;
+  likesCount: number;
+  likedBy: { [key: string]: boolean };
+  replies: Reply[];
+  createdAt: number;
+};
+
+type Reply = {
+  id: string;
+  content: string;
+  userId: string;
+  createdAt: number;
 };
 
 const CommunityDetailScreen = ({ route }: any) => {
   const { community } = route.params;
-
-  const [comments, setComments] = useState<Comment[]>([]); // 初期値を空の配列に設定
+  const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<{ [key: string]: User }>({});
   const [newComment, setNewComment] = useState("");
+  const [isJoined, setIsJoined] = useState(false);
+  const [memberCount, setMemberCount] = useState(0);
+  const [replyInputVisible, setReplyInputVisible] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [replyText, setReplyText] = useState("");
 
   const db = getDatabase();
+  const auth = getAuth();
+  const userId = auth.currentUser?.uid;
+
   const commentsRef = ref(db, `communities/${community.id}/comments`);
   const usersRef = ref(db, "users");
+  const membersRef = ref(db, `communities/${community.id}/members`);
 
-  // コメントデータを取得
+  /// コメントデータを取得
   useEffect(() => {
-    const unsubscribe = onValue(commentsRef, (snapshot) => {
-      const data = snapshot.val() || {}; // dataがnullの場合は空オブジェクトを使用
-      const commentList: Comment[] = Object.values(data);
-      setComments(commentList);
+    const unsubscribeComments = onValue(commentsRef, (snapshot) => {
+      try {
+        const data = snapshot.val();
+        const commentsList = data
+          ? Object.entries(data)
+              .map(([id, comment]: [string, any]) => ({
+                id,
+                ...(comment as Omit<Comment, "id">),
+              }))
+              .sort((a, b) => b.createdAt - a.createdAt)
+          : [];
+        setComments(commentsList);
+      } catch (error) {
+        console.error("コメントの取得でエラーが発生しました:", error);
+      }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeComments();
   }, []);
 
   // ユーザー情報を取得
   useEffect(() => {
-    const unsubscribe = onValue(usersRef, (snapshot) => {
-      const data = snapshot.val() || {}; // dataがnullの場合は空のオブジェクトを使用
-      setUsers(data);
+    const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+      try {
+        const data = snapshot.val();
+        if (data) {
+          setUsers(data);
+        }
+      } catch (error) {
+        console.error("ユーザー情報の取得でエラーが発生しました:", error);
+      }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeUsers();
   }, []);
 
-  const handleAddComment = () => {
+  // 投稿時刻を「〇分前」の形式に変換する関数
+  const formatTimestamp = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+
+    // 1分未満
+    if (diff < 60 * 1000) {
+      return "たった今";
+    }
+    // 1時間未満
+    if (diff < 60 * 60 * 1000) {
+      return `${Math.floor(diff / (60 * 1000))}分前`;
+    }
+    // 24時間未満
+    if (diff < 24 * 60 * 60 * 1000) {
+      return `${Math.floor(diff / (60 * 60 * 1000))}時間前`;
+    }
+    // 7日未満
+    if (diff < 7 * 24 * 60 * 60 * 1000) {
+      return `${Math.floor(diff / (24 * 60 * 60 * 1000))}日前`;
+    }
+    // それ以外は日付を表示
+    return new Date(timestamp).toLocaleDateString();
+  };
+
+  // メンバー情報を取得
+  useEffect(() => {
+    if (!userId) return;
+
+    const checkMembership = async () => {
+      try {
+        const memberSnapshot = await get(
+          ref(db, `communities/${community.id}/members/${userId}`)
+        );
+        setIsJoined(memberSnapshot.exists());
+      } catch (error) {
+        console.error("メンバー情報の取得でエラー:", error);
+      }
+    };
+
+    const memberCountRef = ref(db, `communities/${community.id}/members`);
+    const unsubscribeMemberCount = onValue(memberCountRef, (snapshot) => {
+      try {
+        const count = snapshot.exists()
+          ? Object.keys(snapshot.val()).length
+          : 0;
+        setMemberCount(count);
+      } catch (error) {
+        console.error("メンバー数の取得でエラー:", error);
+      }
+    });
+
+    checkMembership();
+
+    return () => unsubscribeMemberCount();
+  }, [userId, db, community.id]);
+
+  // コミュニティへの参加処理
+  const handleJoinCommunity = async () => {
+    if (!userId) {
+      Alert.alert("エラー", "ログインが必要です");
+      return;
+    }
+
+    try {
+      await set(ref(db, `communities/${community.id}/members/${userId}`), {
+        userId,
+        joinedAt: Date.now(),
+      });
+      setIsJoined(true);
+      Alert.alert("成功", "コミュニティに参加しました！");
+    } catch (error) {
+      Alert.alert("エラー", "コミュニティへの参加に失敗しました");
+    }
+  };
+
+  // コミュニティからの退出処理
+  const handleLeaveCommunity = async () => {
+    if (!userId) return;
+
+    try {
+      await set(ref(db, `communities/${community.id}/members/${userId}`), null);
+      setIsJoined(false);
+      Alert.alert("成功", "コミュニティから退出しました");
+    } catch (error) {
+      Alert.alert("エラー", "コミュニティからの退出に失敗しました");
+    }
+  };
+
+  // コメント投稿処理を修正
+  const handleAddComment = async () => {
+    if (!userId) {
+      Alert.alert("エラー", "ログインが必要です");
+      return;
+    }
+
+    if (!isJoined) {
+      Alert.alert("エラー", "コミュニティに参加してからコメントしてください");
+      return;
+    }
+
     if (newComment.trim()) {
-      const auth = getAuth();
-      const userId = auth.currentUser ? auth.currentUser.uid : null; // ログインユーザーのIDを取得
-      if (userId) {
-        push(commentsRef, {
+      try {
+        await push(commentsRef, {
           content: newComment,
           userId,
           likes: 0,
           replies: [],
+          createdAt: Date.now(),
         });
         setNewComment("");
-      } else {
-        console.log("ユーザーがログインしていません");
+      } catch (error) {
+        Alert.alert("エラー", "コメントの投稿に失敗しました");
       }
     }
   };
 
-  const handleLike = (index: number) => {
-    const updatedComments = [...comments];
-    updatedComments[index].likes += 1;
-    setComments(updatedComments);
+  const handleLike = async (commentId: string) => {
+    if (!userId) {
+      Alert.alert("エラー", "ログインが必要です");
+      return;
+    }
+
+    try {
+      const commentRef = ref(
+        db,
+        `communities/${community.id}/comments/${commentId}`
+      );
+      const snapshot = await get(commentRef);
+      if (snapshot.exists()) {
+        const comment = snapshot.val();
+        const likedBy = comment.likedBy || {};
+
+        if (likedBy[userId]) {
+          // 既に「いいね」済みの場合は解除
+          delete likedBy[userId];
+        } else {
+          // 「いいね」追加
+          likedBy[userId] = true;
+        }
+
+        const likesCount = Object.keys(likedBy).length;
+        await set(commentRef, { ...comment, likedBy, likesCount });
+      }
+    } catch (error) {
+      console.error("いいねの処理でエラー:", error);
+    }
   };
 
-  const handleReply = (index: number, reply: string) => {
-    const updatedComments = [...comments];
-    updatedComments[index].replies.push(reply);
-    setComments(updatedComments);
+  const handleReply = async (commentId: string, replyText: string) => {
+    if (!userId) {
+      Alert.alert("エラー", "ログインが必要です");
+      return;
+    }
+
+    if (replyText.trim()) {
+      try {
+        const repliesRef = ref(
+          db,
+          `communities/${community.id}/comments/${commentId}/replies`
+        );
+        await push(repliesRef, {
+          content: replyText,
+          userId,
+          createdAt: Date.now(),
+        });
+        setReplyText(""); // 返信が成功した後、入力欄をクリア
+      } catch (error) {
+        Alert.alert("エラー", "返信の投稿に失敗しました");
+      }
+    }
   };
 
+  const toggleReplyInput = (commentId: string) => {
+    setReplyInputVisible((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+    setReplyText("");
+  };
+
+  // ヘッダーコンポーネントを修正
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.communityInfoContainer}>
-        {/* コミュニティアイコン */}
         <Image
           source={{
             uri: community.imageUrl || "https://via.placeholder.com/80",
@@ -103,73 +297,73 @@ const CommunityDetailScreen = ({ route }: any) => {
         <View style={styles.communityInfo}>
           <Text style={styles.communityTitle}>{community.title}</Text>
           <View style={styles.communityStats}>
-            <Text style={styles.statsText}>メンバー 125人</Text>
+            <Text style={styles.statsText}>メンバー {memberCount}人</Text>
             <Text style={styles.statsText}>・</Text>
-            <Text style={styles.statsText}>投稿 89件</Text>
+            <Text style={styles.statsText}>投稿 {comments.length}件</Text>
           </View>
         </View>
       </View>
 
-      {/* コミュニティの説明 */}
       <Text style={styles.description}>{community.description}</Text>
 
-      {/* アクションボタン */}
       <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.joinButton}>
-          <Text style={styles.joinButtonText}>参加する</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.inviteButton}>
-          <Text style={styles.inviteButtonText}>友達を招待</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* トピック一覧ヘッダー */}
-      <View style={styles.topicsHeader}>
-        <Text style={styles.topicsTitle}>トピック一覧</Text>
-        <TouchableOpacity style={styles.newTopicButton}>
-          <Text style={styles.newTopicText}>新規作成</Text>
+        <TouchableOpacity
+          style={[styles.joinButton, isJoined && styles.joinedButton]}
+          onPress={isJoined ? handleLeaveCommunity : handleJoinCommunity}
+        >
+          <Text style={styles.joinButtonText}>
+            {isJoined ? "退出する" : "参加する"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  const renderComment = ({ item, index }: { item: Comment; index: number }) => {
+  // renderCommentの型を修正
+  const renderComment = ({ item }: { item: Comment }) => {
     const user = users[item.userId] || {};
-    const username = user.username || "不明";
-    const mediaUrl = user.mediaUrl || "https://via.placeholder.com/40";
-    const homePoint = user.homePoint || "不明";
 
     return (
       <View style={styles.commentContainer}>
         <View style={styles.userInfo}>
-          <Image source={{ uri: mediaUrl }} style={styles.userAvatar} />
+          <Image
+            source={{ uri: user.mediaUrl || "https://via.placeholder.com/40" }}
+            style={styles.userAvatar}
+          />
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{username}</Text>
-            <Text style={styles.timestamp}>2時間前</Text>
+            <Text style={styles.userName}>
+              {user.username || "不明なユーザー"}
+            </Text>
+            <Text style={styles.timestamp}>
+              {formatTimestamp(item.createdAt)}
+            </Text>
           </View>
         </View>
         <Text style={styles.commentContent}>{item.content}</Text>
         <View style={styles.commentActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Image
-              source={require("../assets/icons/like.png")}
-              style={styles.actionIcon}
-            />
-            <Text style={styles.actionCount}>{item.likes}</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleLike(item.id)}
+          >
+            <Text style={styles.actionCount}>
+              {item.likesCount || 0} いいね
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Image
-              source={require("../assets/icons/comment.png")}
-              style={styles.actionIcon}
-            />
-            <Text style={styles.actionCount}>{item.replies?.length || 0}</Text>
-          </TouchableOpacity>
+
+          <View style={styles.userBoardInfo}>
+            {user.boardType && (
+              <Text style={styles.boardTypeText}>{user.boardType}</Text>
+            )}
+            {user.homePoint && (
+              <Text style={styles.homePointText}>{user.homePoint}</Text>
+            )}
+          </View>
         </View>
       </View>
     );
   };
 
-  return(
+  return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -178,39 +372,58 @@ const CommunityDetailScreen = ({ route }: any) => {
         <FlatList
           data={comments}
           renderItem={renderComment}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(item) => item.id || Math.random().toString()} // idがない場合のフォールバック
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.contentContainer}
         />
 
-        {/* コメント入力エリア */}
-        <View style={styles.inputContainer}>
-          <Image
-            source={{ uri: "https://via.placeholder.com/32" }}
-            style={styles.inputAvatar}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="コメントを入力..."
-            value={newComment}
-            onChangeText={setNewComment}
-            multiline
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              !newComment.trim() && styles.sendButtonDisabled,
-            ]}
-            onPress={handleAddComment}
-            disabled={!newComment.trim()}
-          >
-            <Text style={styles.sendButtonText}>送信</Text>
-          </TouchableOpacity>
-        </View>
+        {isJoined && (
+          <View style={styles.inputContainer}>
+            <Image
+              source={{ uri: "https://via.placeholder.com/32" }}
+              style={styles.inputAvatar}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="コメントを入力..."
+              value={newComment}
+              onChangeText={setNewComment}
+              multiline
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                !newComment.trim() && styles.sendButtonDisabled,
+              ]}
+              onPress={handleAddComment}
+              disabled={!newComment.trim()}
+            >
+              <Text style={styles.sendButtonText}>送信</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+// スタイルに追加
+const additionalStyles = StyleSheet.create({
+  userBoardInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
+  },
+  boardTypeText: {
+    fontSize: 12,
+    color: "#666666",
+    marginRight: 8,
+  },
+  homePointText: {
+    fontSize: 12,
+    color: "#666666",
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -270,6 +483,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginRight: 8,
+  },
+  joinedButton: {
+    backgroundColor: "#666666",
   },
   joinButtonText: {
     color: "#FFFFFF",
@@ -406,6 +622,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  replyInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  ...additionalStyles,
 });
 
 export default CommunityDetailScreen;

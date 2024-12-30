@@ -8,11 +8,11 @@ import LoginScreen from "../screens/LoginScreen";
 import SignUpScreen from "../screens/SignUpScreen";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import ProfileEditScreen from "../screens/ProfileEditScreen";
 import EventScreen from "../screens/EventScreen";
 import EventDetailScreen from "../screens/EventDetailScreen";
 import EventCreateScreen from "../screens/EventCreateScreen"; // パスを確認・修正
 import CommunityScreen from "../screens/CommunityScreen";
-import MessagesScreen from "../screens/MessagesScreen";
 import CreatePostScreen from "../screens/CreatePostScreen"; // ファイルパスに応じて修正
 import ProfileCreateScreen from "../screens/ProfileCreateScreen";
 import CommunityDetailScreen from "../screens/CommunityDetailScreen";
@@ -103,6 +103,7 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="ProfileCreate" component={ProfileCreateScreen} />
+          <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
           <Stack.Screen name="Spots" component={SpotSharingScreen} />
           <Stack.Screen name="SpotDetail" component={SpotDetailScreen} />
         </Stack.Navigator>

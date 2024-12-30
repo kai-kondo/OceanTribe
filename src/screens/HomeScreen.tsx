@@ -10,7 +10,7 @@ import {
   ScrollView,
   RefreshControl,
 } from "react-native";
-import { getDatabase, ref, onValue } from "firebase/database";
+import { getDatabase, ref, onValue, update } from "firebase/database";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const { width } = Dimensions.get("window");
@@ -110,15 +110,35 @@ const HomeScreen = ({ navigation }: any) => {
     return () => unsubscribe(); // コンポーネントのクリーンアップ時にリスナーを解除
   }, []);
 
+  const handleLikePost = (postId: string) => {
+    const db = getDatabase();
+    const userId = auth.currentUser?.uid;
+
+    if (!userId) return;
+
+    const postRef = ref(db, `posts/${postId}/likes`);
+
+    onValue(postRef, (snapshot) => {
+      const data = snapshot.val();
+      const currentLikes = data ? Object.keys(data) : []; // オブジェクトのキーを配列として取得
+
+      if (!currentLikes.includes(userId)) {
+        // いいねを追加（オブジェクトとして保存）
+        update(ref(db, `posts/${postId}`), {
+          likes: {
+            ...data,
+            [userId]: true,
+          },
+        });
+      }
+    });
+  };
+
   const renderHeader = () => (
-
-
     <View style={styles.header}>
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>ホーム</Text>
-        <Text style={styles.headerSubtitle}>
-          さぁ仲間を探そう！
-        </Text>
+        <Text style={styles.headerSubtitle}>さぁ仲間を探そう！</Text>
       </View>
 
       {/* 右側のアイコンボタン */}
@@ -239,19 +259,17 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
 
           <View style={styles.postActions}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleLikePost(item.id)}
+            >
               <Image
                 source={require("../assets/icons/like.png")}
                 style={styles.actionIcon}
               />
-              <Text style={styles.actionText}>いいね</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Image
-                source={require("../assets/icons/comment.png")}
-                style={styles.actionIcon}
-              />
-              <Text style={styles.actionText}>コメント</Text>
+              <Text style={styles.statText}>
+                {item.likes ? Object.keys(item.likes).length : 0}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

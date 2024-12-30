@@ -137,6 +137,8 @@ const SpotDetailScreen = ({ navigation }: any) => {
         reviewStars,
         mediaUrl,
         createdAt: new Date().toISOString(),
+        likes: {}, // 初期化
+        comments: [], // 初期化
       };
 
       await push(postRef, postData);
