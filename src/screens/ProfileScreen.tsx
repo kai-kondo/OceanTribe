@@ -9,7 +9,7 @@ import {
   Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getAuth } from "firebase/auth";
+import { getAuth, signOut } from "firebase/auth";
 import {
   getDatabase,
   ref as dbRef,
@@ -32,6 +32,7 @@ const socialIcons: Record<SocialPlatform, any> = {
 const ProfileScreen = () => {
   const navigation = useNavigation<any>();
   const currentUser = getAuth().currentUser;
+  const auth = getAuth();
 
   const [profileData, setProfileData] = useState({
     username: "",
@@ -57,6 +58,17 @@ const ProfileScreen = () => {
     Linking.openURL(url).catch((err) =>
       console.error("Failed to open URL:", err)
     );
+  };
+
+  // ログアウト処理
+  const handleLogout = () => {
+    signOut(auth)
+      .then(() => {
+        navigation.navigate("Login"); // ログイン画面に遷移
+      })
+      .catch((error) => {
+        console.error("Logout failed:", error);
+      });
   };
 
   useEffect(() => {
@@ -133,6 +145,17 @@ const ProfileScreen = () => {
             />
           </TouchableOpacity>
 
+          {/* ログアウトアイコン */}
+          <TouchableOpacity
+            style={styles.logoutIconContainer}
+            onPress={handleLogout}
+          >
+            <Image
+              source={require("../assets/icons/logout.png")}
+              style={styles.logoutIcon}
+            />
+          </TouchableOpacity>
+
           {/* プロフィール画像 */}
           <Image
             source={{ uri: profileData.mediaUrl }}
@@ -144,15 +167,6 @@ const ProfileScreen = () => {
 
           {/* フォロー情報 */}
           <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>426</Text>
-              <Text style={styles.statLabel}>フォロワー</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>351</Text>
-              <Text style={styles.statLabel}>フォロー中</Text>
-            </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{userPosts.length}</Text>
@@ -623,6 +637,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 5,
     color: "#008CBA",
+  },
+
+  logoutIconContainer: {
+    position: "absolute",
+    top: 10, // 編集アイコンと同じ高さ
+    left: 20, // 左端の余白
+    zIndex: 10,
+  },
+  logoutIcon: {
+    width: 24,
+    height: 24,
+    tintColor: "#FFFFFF",
   },
 });
 

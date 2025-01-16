@@ -88,7 +88,6 @@ const ProfileEditScreen = () => {
         `profile_images/${currentUser?.uid}`
       );
 
-
       try {
         const snapshot = await uploadBytes(imageRef, blob);
         const downloadURL = await getDownloadURL(snapshot.ref);
@@ -140,16 +139,9 @@ const ProfileEditScreen = () => {
     >
       <ScrollView>
         <LinearGradient colors={["#4A90E2", "#357ABD"]} style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Image
-              source={require("../assets/icons/pin.png")}
-              style={styles.backIcon}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>プロフィール編集</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>プロフィール編集</Text>
+          </View>
         </LinearGradient>
 
         <View style={styles.content}>
@@ -166,7 +158,7 @@ const ProfileEditScreen = () => {
             )}
             <View style={styles.editBadge}>
               <Image
-                source={require("../assets/icons/pin.png")}
+                source={require("../assets/icons/edit.png")}
                 style={styles.cameraIcon}
               />
             </View>
@@ -284,8 +276,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F6F6",
   },
   header: {
-    height: 100,
-    paddingTop: 40,
+    height: 50,
+    paddingTop: 10,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -396,6 +388,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     textAlign: "center",
+  },
+  headerContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
